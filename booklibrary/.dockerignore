@@ -1,0 +1,11 @@
+.dockerignore
+.editorconfig
+.env
+.git
+.gitignore
+.vscode
+LICENSE
+README.md
+Dockerfile
+main
+*.exe

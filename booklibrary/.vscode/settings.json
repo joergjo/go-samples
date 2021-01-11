@@ -1,0 +1,7 @@
+{
+    "files.exclude": {
+        "**/*.exe": true,
+        "**/*.exe~": true,
+        "**/__debug_bin": true
+    }
+}
