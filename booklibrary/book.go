@@ -48,3 +48,7 @@ func (b *Book) UnmarshalJSON(data []byte) error {
 	b.ReleaseDate = time.Unix(dto.ReleaseDate, 0)
 	return nil
 }
+
+func (kw Keyword) String() string {
+	return kw.Value
+}

@@ -69,17 +69,16 @@ func (s *Server) getBook() http.HandlerFunc {
 			}
 			log.Printf("Client provided invalid ID for document: %s\n", id)
 			http.NotFound(writer, request)
-			// http.Error(writer, err.Error(), http.StatusBadRequest)
 			return
 		}
 		if book == nil {
-			log.Printf("Cannot find book with ID: %q\n", id)
+			log.Printf("Book with ID %s not found\n", id)
 			http.NotFound(writer, request)
 			return
 		}
 
 		if book == nil {
-			log.Printf("Cannot find book with ID: %q\n", id)
+			log.Printf("Book with ID %s not found\n", id)
 			http.NotFound(writer, request)
 			return
 		}
@@ -124,7 +123,7 @@ func (s *Server) addBook() http.HandlerFunc {
 		}
 
 		// Marshal book back as JSON
-		b, err := json.Marshal(book)
+		b, err := json.Marshal(&book)
 		if err != nil {
 			log.Printf("Error marshalling book: %v\n", err)
 			http.Error(writer, err.Error(), http.StatusInternalServerError)

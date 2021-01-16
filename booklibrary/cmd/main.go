@@ -49,7 +49,7 @@ func main() {
 func newStorage() (booklibrary.Storage, error) {
 	if appConfig.mongoURI == "" {
 		log.Println("Using in-memory data store.")
-		s, err := mock.NewStorage()
+		s, err := mock.NewStorage(mock.SampleData())
 		return s, err
 	}
 	log.Printf("Connecting to MongoDB at '%s'.\n", appConfig.mongoURI)

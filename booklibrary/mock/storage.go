@@ -2,8 +2,6 @@ package mock
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"time"
 
 	"github.com/joergjo/go-samples/booklibrary"
@@ -19,9 +17,11 @@ type mockStore struct {
 var _ booklibrary.Storage = &mockStore{}
 
 // NewStorage creates a new Storage instance
-func NewStorage() (booklibrary.Storage, error) {
+func NewStorage(books []*booklibrary.Book) (booklibrary.Storage, error) {
 	m := &mockStore{items: make(map[string]*booklibrary.Book)}
-	m.sampleData()
+	for _, b := range books {
+		m.Add(nil, b)
+	}
 	return m, nil
 }
 
@@ -42,33 +42,23 @@ func (m *mockStore) All(_ context.Context, limit int64) ([]*booklibrary.Book, er
 func (m *mockStore) Book(_ context.Context, id string) (*booklibrary.Book, error) {
 	b, ok := m.items[id]
 	if !ok {
-		msg := fmt.Sprintf("Book with ID %s not found.", id)
-		err := errors.New(msg)
-		return nil, err
+		return nil, nil
 	}
 	return b, nil
 }
 
 // Add ads a new Book
-func (m *mockStore) Add(_ context.Context, book *booklibrary.Book) (*booklibrary.Book, error) {
-	oid := primitive.NewObjectID()
-	book.ID = oid
-	id := oid.Hex()
-	m.items[id] = book
-	return book, nil
+func (m *mockStore) Add(ctx context.Context, book *booklibrary.Book) (*booklibrary.Book, error) {
+	if book.ID == primitive.NilObjectID {
+		book.ID = primitive.NewObjectID()
+	}
+	return m.insert(ctx, book)
 }
 
 // Update updates an existing Book
 func (m *mockStore) Update(_ context.Context, id string, book *booklibrary.Book) (*booklibrary.Book, error) {
 	if _, ok := m.items[id]; !ok {
-		msg := fmt.Sprintf("Adding Book with ID %s failed.", id)
-		err := errors.New(msg)
-		return nil, err
-	}
-	var err error
-	book.ID, err = primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, booklibrary.ErrInvalidID
+		return nil, nil
 	}
 	m.items[id] = book
 	return book, nil
@@ -84,27 +74,38 @@ func (m *mockStore) Remove(_ context.Context, id string) (*booklibrary.Book, err
 	return book, nil
 }
 
-func (m *mockStore) sampleData() {
+func (m *mockStore) insert(_ context.Context, book *booklibrary.Book) (*booklibrary.Book, error) {
+	id := book.ID.Hex()
+	m.items[id] = book
+	return book, nil
+}
+
+// SampleData generates a sample Book objects for testing
+func SampleData() []*booklibrary.Book {
+	id1, _ := primitive.ObjectIDFromHex("000000000000000000000001")
+	id2, _ := primitive.ObjectIDFromHex("000000000000000000000002")
+	id3, _ := primitive.ObjectIDFromHex("000000000000000000000003")
 	bb := []*booklibrary.Book{
 		{
+			ID:          id1,
 			Author:      "Jörg Jooss",
 			Title:       "Go in 24 Minutes",
 			ReleaseDate: time.Date(2019, 5, 1, 0, 0, 0, 0, time.UTC),
 			Keywords:    []booklibrary.Keyword{{Value: "Go"}},
 		},
 		{
+			ID:          id2,
 			Author:      "Jonah Jooss",
 			Title:       "Dragons Unleashed",
 			ReleaseDate: time.Date(2021, 11, 15, 0, 0, 0, 0, time.UTC),
 			Keywords:    []booklibrary.Keyword{{Value: "Dragons"}, {Value: "Toys"}},
 		},
 		{
+			ID:          id3,
 			Author:      "Paul Jooss",
 			Title:       "Professional BattleTech",
 			ReleaseDate: time.Date(2022, 7, 30, 0, 0, 0, 0, time.UTC),
 			Keywords:    []booklibrary.Keyword{{Value: "SciFi"}, {Value: "Boardgames"}},
 		}}
-	for _, b := range bb {
-		m.Add(nil, b)
-	}
+	return bb
 }
