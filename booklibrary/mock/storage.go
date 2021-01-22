@@ -42,7 +42,7 @@ func (m *mockStore) All(_ context.Context, limit int64) ([]*booklibrary.Book, er
 func (m *mockStore) Book(_ context.Context, id string) (*booklibrary.Book, error) {
 	b, ok := m.items[id]
 	if !ok {
-		return nil, nil
+		return nil, booklibrary.ErrNotFound
 	}
 	return b, nil
 }
@@ -58,7 +58,7 @@ func (m *mockStore) Add(ctx context.Context, book *booklibrary.Book) (*booklibra
 // Update updates an existing Book
 func (m *mockStore) Update(_ context.Context, id string, book *booklibrary.Book) (*booklibrary.Book, error) {
 	if _, ok := m.items[id]; !ok {
-		return nil, nil
+		return nil, booklibrary.ErrNotFound
 	}
 	m.items[id] = book
 	return book, nil
@@ -68,7 +68,7 @@ func (m *mockStore) Update(_ context.Context, id string, book *booklibrary.Book)
 func (m *mockStore) Remove(_ context.Context, id string) (*booklibrary.Book, error) {
 	book, ok := m.items[id]
 	if !ok {
-		return nil, nil
+		return nil, booklibrary.ErrNotFound
 	}
 	delete(m.items, id)
 	return book, nil

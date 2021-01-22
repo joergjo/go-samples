@@ -86,7 +86,7 @@ func (m *mongoCollectionStore) Book(parent context.Context, id string) (*booklib
 		return nil, err
 	}
 	if len(books) == 0 {
-		return nil, nil
+		return nil, booklibrary.ErrNotFound
 	}
 	return books[0], nil
 }
@@ -129,7 +129,7 @@ func (m *mongoCollectionStore) Update(parent context.Context, id string, book *b
 		if err != mongo.ErrNoDocuments {
 			return nil, err
 		}
-		return nil, nil
+		return nil, booklibrary.ErrNotFound
 	}
 
 	var b booklibrary.Book
@@ -159,7 +159,7 @@ func (m *mongoCollectionStore) Remove(parent context.Context, id string) (*bookl
 		if err != mongo.ErrNoDocuments {
 			return nil, err
 		}
-		return nil, nil
+		return nil, booklibrary.ErrNotFound
 	}
 
 	var b booklibrary.Book

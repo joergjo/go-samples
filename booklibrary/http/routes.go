@@ -62,25 +62,20 @@ func (s *Server) getBook() http.HandlerFunc {
 		id := v["id"]
 		book, err := s.store.Book(request.Context(), id)
 		if err != nil {
-			if err != booklibrary.ErrInvalidID {
+			switch err {
+			case booklibrary.ErrInvalidID:
+				log.Printf("Client provided invalid ID for document: %s\n", id)
+				http.NotFound(writer, request)
+				return
+			case booklibrary.ErrNotFound:
+				log.Printf("Book with ID %s not found\n", id)
+				http.NotFound(writer, request)
+				return
+			default:
 				log.Printf("Error reading from database: %v\n", err)
 				http.Error(writer, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			log.Printf("Client provided invalid ID for document: %s\n", id)
-			http.NotFound(writer, request)
-			return
-		}
-		if book == nil {
-			log.Printf("Book with ID %s not found\n", id)
-			http.NotFound(writer, request)
-			return
-		}
-
-		if book == nil {
-			log.Printf("Book with ID %s not found\n", id)
-			http.NotFound(writer, request)
-			return
 		}
 
 		b, err := json.Marshal(book)
@@ -163,14 +158,20 @@ func (s *Server) updateBook() http.HandlerFunc {
 		id := v["id"]
 		updatedBook, err := s.store.Update(request.Context(), id, &book)
 		if err != nil {
-			if err != booklibrary.ErrInvalidID {
-				log.Printf("Error updating book: %v\n", err)
+			switch err {
+			case booklibrary.ErrInvalidID:
+				log.Printf("Client provided invalid ID for document: %s\n", id)
+				http.NotFound(writer, request)
+				return
+			case booklibrary.ErrNotFound:
+				log.Printf("Book with ID %s not found\n", id)
+				http.NotFound(writer, request)
+				return
+			default:
+				log.Printf("Error reading from database: %v\n", err)
 				http.Error(writer, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			log.Printf("Client provided invalid ID for document: %s\n", id)
-			http.Error(writer, err.Error(), http.StatusBadRequest)
-			return
 		}
 		if updatedBook == nil {
 			log.Printf("Book with ID %s not found\n", id)
@@ -195,21 +196,21 @@ func (s *Server) deleteBook() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		v := mux.Vars(request)
 		id := v["id"]
-		book, err := s.store.Remove(request.Context(), id)
-		if err != nil {
-			if err != booklibrary.ErrInvalidID {
-				log.Printf("Error deleting book: %v\n", err)
+		if _, err := s.store.Remove(request.Context(), id); err != nil {
+			switch err {
+			case booklibrary.ErrInvalidID:
+				log.Printf("Client provided invalid ID for document: %s\n", id)
+				http.NotFound(writer, request)
+				return
+			case booklibrary.ErrNotFound:
+				log.Printf("Book with ID %s not found\n", id)
+				http.NotFound(writer, request)
+				return
+			default:
+				log.Printf("Error reading from database: %v\n", err)
 				http.Error(writer, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			log.Printf("Client provided invalid ID for document: %s\n", id)
-			http.Error(writer, err.Error(), http.StatusBadRequest)
-			return
-		}
-		if book == nil {
-			log.Printf("Book with ID %s not found\n", id)
-			http.NotFound(writer, request)
-			return
 		}
 
 		writer.WriteHeader(http.StatusNoContent)
