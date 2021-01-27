@@ -1,16 +1,18 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"time"
 
 	"github.com/joergjo/go-samples/booklibrary"
-	webapi "github.com/joergjo/go-samples/booklibrary/http"
+	api "github.com/joergjo/go-samples/booklibrary/http"
 	"github.com/joergjo/go-samples/booklibrary/mock"
 	"github.com/joergjo/go-samples/booklibrary/mongo"
 )
@@ -22,43 +24,38 @@ var appConfig = struct {
 	collection string
 }{}
 
-func init() {
-	config()
-}
-
 func main() {
-	flag.Parse()
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	log.SetPrefix("[booklibrary] ")
+
+	config()
 	store, err := newStorage()
 	if err != nil {
-		log.Fatalf("Failed to create storage implementation: %s", err)
+		log.Fatalf("Fatal error creating storage implementation: %v\n", err)
 	}
-	webAPI := webapi.NewServer(store)
-	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", appConfig.port),
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  120 * time.Second,
-		Handler:      webAPI,
-	}
-	log.Printf("Server listening on 0.0.0.0:%d...\n", appConfig.port)
-	log.Fatal(srv.ListenAndServe())
-}
+	srv := newServer(store)
+	shutdown := make(chan struct{})
 
-func newStorage() (booklibrary.Storage, error) {
-	if appConfig.mongoURI == "" {
-		log.Println("Using in-memory data store.")
-		s, err := mock.NewStorage(mock.SampleData())
-		return s, err
+	go func() {
+		stop := make(chan os.Signal, 1)
+		signal.Notify(stop, os.Interrupt, os.Kill)
+		<-stop
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(ctx); err != nil {
+			log.Printf("Error shutting down server: %v\n", err)
+		}
+		close(shutdown)
+
+	}()
+
+	log.Printf("Server starting, listening on 0.0.0.0:%d...\n", appConfig.port)
+	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+		log.Fatalf("Fatal error in ListenAndServer(): %v\n", err)
 	}
-	log.Printf("Connecting to MongoDB at '%s'.\n", appConfig.mongoURI)
-	s, err := mongo.NewStorage(appConfig.mongoURI, appConfig.db, appConfig.collection)
-	if err != nil {
-		return nil, err
-	}
-	log.Printf("Connected to MongoDB at '%s'.\n", appConfig.mongoURI)
-	return s, nil
+	<-shutdown
+	log.Println("Server has shut down")
 }
 
 func config() {
@@ -79,4 +76,30 @@ func config() {
 	flag.StringVar(&(appConfig.mongoURI), "mongoURI", mongoURI, "MongoDB URI to connect to")
 	flag.StringVar(&(appConfig.db), "db", db, "Name of MongoDB database")
 	flag.StringVar(&(appConfig.collection), "collection", coll, "Name of MongoDB collection")
+	flag.Parse()
+}
+
+func newStorage() (booklibrary.Storage, error) {
+	if appConfig.mongoURI == "" {
+		log.Println("Using in-memory data store.")
+		s, err := mock.NewStorage(mock.SampleData())
+		return s, err
+	}
+	log.Printf("Connecting to MongoDB at '%s'.\n", appConfig.mongoURI)
+	s, err := mongo.NewStorage(appConfig.mongoURI, appConfig.db, appConfig.collection)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("Connected to MongoDB at '%s'.\n", appConfig.mongoURI)
+	return s, nil
+}
+
+func newServer(store booklibrary.Storage) *http.Server {
+	return &http.Server{
+		Addr:         fmt.Sprintf(":%d", appConfig.port),
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
+		Handler:      api.NewHandler(store),
+	}
 }

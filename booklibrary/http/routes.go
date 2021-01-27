@@ -16,13 +16,13 @@ import (
 
 const applicationJSON = "application/json"
 
-func (s *Server) routes() {
-	s.Handle("/api/books", handlerFor(s.allBooks(), "allBooks")).Methods(http.MethodGet)
-	s.Handle("/api/books/{id}", handlerFor(s.getBook(), "getBook")).Methods(http.MethodGet)
-	s.Handle("/api/books", handlerFor(s.addBook(), "addBook")).Methods(http.MethodPost)
-	s.Handle("/api/books/{id}", handlerFor(s.updateBook(), "updateBook")).Methods(http.MethodPut)
-	s.Handle("/api/books/{id}", handlerFor(s.deleteBook(), "deleteBook")).Methods(http.MethodDelete)
-	s.Handle("/metrics", promhttp.Handler())
+func (api *APIHandler) routes() {
+	api.Handle("/api/books", handlerFor(api.allBooks(), "allBooks")).Methods(http.MethodGet)
+	api.Handle("/api/books/{id}", handlerFor(api.getBook(), "getBook")).Methods(http.MethodGet)
+	api.Handle("/api/books", handlerFor(api.addBook(), "addBook")).Methods(http.MethodPost)
+	api.Handle("/api/books/{id}", handlerFor(api.updateBook(), "updateBook")).Methods(http.MethodPut)
+	api.Handle("/api/books/{id}", handlerFor(api.deleteBook(), "deleteBook")).Methods(http.MethodDelete)
+	api.Handle("/metrics", promhttp.Handler())
 }
 
 func handlerFor(handlerFunc http.HandlerFunc, handlerName string) http.Handler {
@@ -35,9 +35,9 @@ func handlerFor(handlerFunc http.HandlerFunc, handlerName string) http.Handler {
 	)
 }
 
-func (s *Server) allBooks() http.HandlerFunc {
+func (api *APIHandler) allBooks() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
-		all, err := s.store.All(request.Context(), 100)
+		all, err := api.store.All(request.Context(), 100)
 		if err != nil {
 			log.Printf("Error reading from database: %v\n", err)
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
@@ -56,11 +56,11 @@ func (s *Server) allBooks() http.HandlerFunc {
 	}
 }
 
-func (s *Server) getBook() http.HandlerFunc {
+func (api *APIHandler) getBook() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		v := mux.Vars(request)
 		id := v["id"]
-		book, err := s.store.Book(request.Context(), id)
+		book, err := api.store.Book(request.Context(), id)
 		if err != nil {
 			switch err {
 			case booklibrary.ErrInvalidID:
@@ -90,7 +90,7 @@ func (s *Server) getBook() http.HandlerFunc {
 	}
 }
 
-func (s *Server) addBook() http.HandlerFunc {
+func (api *APIHandler) addBook() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		// Read Book JSON object from HTTP body
 		body, err := ioutil.ReadAll(request.Body)
@@ -110,7 +110,7 @@ func (s *Server) addBook() http.HandlerFunc {
 		}
 
 		// Add to storage
-		_, err = s.store.Add(request.Context(), &book)
+		_, err = api.store.Add(request.Context(), &book)
 		if err != nil {
 			log.Printf("Error adding book to database: %v\n", err)
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
@@ -134,7 +134,7 @@ func (s *Server) addBook() http.HandlerFunc {
 	}
 }
 
-func (s *Server) updateBook() http.HandlerFunc {
+func (api *APIHandler) updateBook() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		// Read Book JSON object from HTTP body
 		body, err := ioutil.ReadAll(request.Body)
@@ -156,7 +156,7 @@ func (s *Server) updateBook() http.HandlerFunc {
 		// Updated book by ID in request URI
 		v := mux.Vars(request)
 		id := v["id"]
-		updatedBook, err := s.store.Update(request.Context(), id, &book)
+		updatedBook, err := api.store.Update(request.Context(), id, &book)
 		if err != nil {
 			switch err {
 			case booklibrary.ErrInvalidID:
@@ -192,11 +192,11 @@ func (s *Server) updateBook() http.HandlerFunc {
 	}
 }
 
-func (s *Server) deleteBook() http.HandlerFunc {
+func (api *APIHandler) deleteBook() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		v := mux.Vars(request)
 		id := v["id"]
-		if _, err := s.store.Remove(request.Context(), id); err != nil {
+		if _, err := api.store.Remove(request.Context(), id); err != nil {
 			switch err {
 			case booklibrary.ErrInvalidID:
 				log.Printf("Client provided invalid ID for document: %s\n", id)

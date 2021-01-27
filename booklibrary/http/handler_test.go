@@ -29,10 +29,10 @@ func TestGetAllBooks(t *testing.T) {
 	for _, tt := range allBooksTest {
 		t.Run(fmt.Sprintf("%d books", len(tt.in)), func(t *testing.T) {
 			store, _ := mock.NewStorage(tt.in)
-			srv := NewServer(store)
+			api := NewHandler(store)
 			r := httptest.NewRequest(http.MethodGet, "/api/books", nil)
 			w := httptest.NewRecorder()
-			srv.ServeHTTP(w, r)
+			api.ServeHTTP(w, r)
 			resp := w.Result()
 
 			if got := resp.StatusCode; got != http.StatusOK {
@@ -78,10 +78,10 @@ func TestGetBookByID(t *testing.T) {
 	for _, tt := range getBookTests {
 		t.Run(tt.in, func(t *testing.T) {
 			store, _ := mock.NewStorage(mock.SampleData())
-			srv := NewServer(store)
+			api := NewHandler(store)
 			r := httptest.NewRequest(http.MethodGet, "/api/books/"+tt.in, nil)
 			w := httptest.NewRecorder()
-			srv.ServeHTTP(w, r)
+			api.ServeHTTP(w, r)
 			resp := w.Result()
 
 			got := resp.StatusCode
@@ -128,10 +128,10 @@ func TestDeleteBook(t *testing.T) {
 	for _, tt := range deleteBookTests {
 		t.Run(tt.in, func(t *testing.T) {
 			store, _ := mock.NewStorage(mock.SampleData())
-			srv := NewServer(store)
+			api := NewHandler(store)
 			r := httptest.NewRequest(http.MethodDelete, "/api/books/"+tt.in, nil)
 			w := httptest.NewRecorder()
-			srv.ServeHTTP(w, r)
+			api.ServeHTTP(w, r)
 
 			if got := w.Result().StatusCode; got != tt.want {
 				t.Fatalf("Received unexpected HTTP status code, got %d, want %d", got, tt.want)
@@ -142,7 +142,7 @@ func TestDeleteBook(t *testing.T) {
 
 func TestAddBook(t *testing.T) {
 	store, _ := mock.NewStorage(mock.SampleData())
-	srv := NewServer(store)
+	api := NewHandler(store)
 	book := &booklibrary.Book{
 		Author:      "Jörg Jooss",
 		Title:       "Go Testing in Action",
@@ -156,7 +156,7 @@ func TestAddBook(t *testing.T) {
 	}
 	r := httptest.NewRequest(http.MethodPost, "/api/books", bytes.NewBuffer(body))
 	w := httptest.NewRecorder()
-	srv.ServeHTTP(w, r)
+	api.ServeHTTP(w, r)
 	resp := w.Result()
 
 	if got := resp.StatusCode; got != http.StatusCreated {
@@ -205,7 +205,7 @@ func TestUpdateBook(t *testing.T) {
 	for _, tt := range updateBookTests {
 		t.Run(tt.in, func(t *testing.T) {
 			store, _ := mock.NewStorage(mock.SampleData())
-			srv := NewServer(store)
+			api := NewHandler(store)
 			id, _ := primitive.ObjectIDFromHex(tt.in)
 			book := &booklibrary.Book{
 				ID:          id,
@@ -221,7 +221,7 @@ func TestUpdateBook(t *testing.T) {
 			}
 			r := httptest.NewRequest(http.MethodPut, "/api/books/"+book.ID.Hex(), bytes.NewBuffer(body))
 			w := httptest.NewRecorder()
-			srv.ServeHTTP(w, r)
+			api.ServeHTTP(w, r)
 			resp := w.Result()
 
 			if got := resp.StatusCode; got != tt.want {
