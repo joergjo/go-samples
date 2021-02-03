@@ -3,7 +3,6 @@ package http
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -18,16 +17,17 @@ import (
 )
 
 var allBooksTest = []struct {
+	name string
 	in   []*booklibrary.Book
 	want int
 }{
-	{mock.SampleData(), len(mock.SampleData())},
-	{[]*booklibrary.Book{}, 0},
+	{"get_multiple_books", mock.SampleData(), len(mock.SampleData())},
+	{"get_empty_collection", []*booklibrary.Book{}, 0},
 }
 
 func TestGetAllBooks(t *testing.T) {
 	for _, tt := range allBooksTest {
-		t.Run(fmt.Sprintf("%d books", len(tt.in)), func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			store, _ := mock.NewStorage(tt.in)
 			api := NewHandler(store)
 			r := httptest.NewRequest(http.MethodGet, "/api/books", nil)
@@ -63,20 +63,21 @@ func TestGetAllBooks(t *testing.T) {
 }
 
 var getBookTests = []struct {
+	name string
 	in   string
 	want int
 }{
-	{"000000000000000000000000", 404},
-	{"000000000000000000000001", 200},
-	{"000000000000000000000002", 200},
-	{"000000000000000000000003", 200},
-	{"000000000000000000000004", 404},
-	{"012345678901234567890123", 404},
+	{"get_unknown_id", "000000000000000000000000", 404},
+	{"get_by_id", "000000000000000000000001", 200},
+	{"get_by_id", "000000000000000000000002", 200},
+	{"get_by_id", "000000000000000000000003", 200},
+	{"get_unknown_id", "000000000000000000000004", 404},
+	{"get_unknown_id", "012345678901234567890123", 404},
 }
 
 func TestGetBookByID(t *testing.T) {
 	for _, tt := range getBookTests {
-		t.Run(tt.in, func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			store, _ := mock.NewStorage(mock.SampleData())
 			api := NewHandler(store)
 			r := httptest.NewRequest(http.MethodGet, "/api/books/"+tt.in, nil)
@@ -113,20 +114,21 @@ func TestGetBookByID(t *testing.T) {
 }
 
 var deleteBookTests = []struct {
+	name string
 	in   string
 	want int
 }{
-	{"000000000000000000000000", 404},
-	{"000000000000000000000001", 204},
-	{"000000000000000000000002", 204},
-	{"000000000000000000000003", 204},
-	{"000000000000000000000004", 404},
-	{"012345678901234567890123", 404},
+	{"delete_unknown_id", "000000000000000000000000", 404},
+	{"delete_by_id", "000000000000000000000001", 204},
+	{"delete_by_id", "000000000000000000000002", 204},
+	{"delete_by_id", "000000000000000000000003", 204},
+	{"delete_unknown_id", "000000000000000000000004", 404},
+	{"delete_unknown_id", "012345678901234567890123", 404},
 }
 
 func TestDeleteBook(t *testing.T) {
 	for _, tt := range deleteBookTests {
-		t.Run(tt.in, func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			store, _ := mock.NewStorage(mock.SampleData())
 			api := NewHandler(store)
 			r := httptest.NewRequest(http.MethodDelete, "/api/books/"+tt.in, nil)
@@ -194,16 +196,17 @@ func TestAddBook(t *testing.T) {
 }
 
 var updateBookTests = []struct {
+	name string
 	in   string
 	want int
 }{
-	{"000000000000000000000001", 200},
-	{"000000000000000000000004", 404},
+	{"update_by_id", "000000000000000000000001", 200},
+	{"update_invalid_id", "000000000000000000000004", 404},
 }
 
 func TestUpdateBook(t *testing.T) {
 	for _, tt := range updateBookTests {
-		t.Run(tt.in, func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			store, _ := mock.NewStorage(mock.SampleData())
 			api := NewHandler(store)
 			id, _ := primitive.ObjectIDFromHex(tt.in)

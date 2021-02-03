@@ -22,6 +22,7 @@ func NewHandler(store booklibrary.Storage) *APIHandler {
 		Router: mux.NewRouter(),
 		store:  store,
 	}
+	api.Router.StrictSlash(true)
 	api.routes()
 	return api
 }
