@@ -1,20 +1,24 @@
-FROM golang:1.15 as builder
+FROM alpine:3 as authority
+RUN mkdir /user && \
+    echo 'appuser:x:1000:1000:appuser:/:' > /user/passwd && \
+    echo 'appgroup:x:1000:' > /user/group
+RUN apk --no-cache add ca-certificates
+
+FROM golang:1.16 as builder
 WORKDIR /build
 
-# Restore depenencies firs
-COPY go.mod .
-COPY go.sum .
+# Restore depenencies
+COPY go.* ./
 RUN go mod download
 # Build app
 COPY . .
-RUN go build ./cmd/main.go
+RUN CGO_ENABLED=0 go build -o booklibrary-api ./cmd/main.go
 
 # Set up runtime image
-FROM alpine:3 AS final
-RUN apk --no-cache add ca-certificates
+FROM scratch
+COPY --from=authority /user/group /user/passwd /etc/
+COPY --from=authority /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=builder /build/booklibrary-api ./
+USER appuser:appgroup
 EXPOSE 5000
-RUN adduser -S -D -H -h /app appuser
-USER appuser
-WORKDIR /app
-COPY --from=builder /build/main .
-ENTRYPOINT ["./main"]
+ENTRYPOINT ["./booklibrary-api"]

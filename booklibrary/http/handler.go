@@ -16,8 +16,8 @@ type APIHandler struct {
 
 var _ http.Handler = &APIHandler{}
 
-// NewHandler creates a new Server and injects a Storage implementation
-func NewHandler(store booklibrary.Storage) *APIHandler {
+// NewAPIHandler creates a new Server and injects a Storage implementation
+func NewAPIHandler(store booklibrary.Storage) *APIHandler {
 	api := &APIHandler{
 		Router: mux.NewRouter(),
 		store:  store,

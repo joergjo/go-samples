@@ -100,6 +100,6 @@ func newServer(store booklibrary.Storage) *http.Server {
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
-		Handler:      api.NewHandler(store),
+		Handler:      api.NewAPIHandler(store),
 	}
 }

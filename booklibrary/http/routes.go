@@ -2,10 +2,12 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -37,14 +39,21 @@ func handlerFor(handlerFunc http.HandlerFunc, handlerName string) http.Handler {
 
 func (api *APIHandler) allBooks() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		all, err := api.store.All(r.Context(), 100)
+		l := r.URL.Query().Get("limit")
+		limit, err := strconv.Atoi(l)
+		if err != nil || limit < 1 {
+			limit = 100
+		}
+		log.Printf("Limiting: result to %d entries\n", limit)
+
+		all, err := api.store.All(r.Context(), int64(limit))
 		if err != nil {
-			log.Printf("Error reading from database: %v\n", err)
+			log.Printf("Database error: %v\n", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		ok(w, all)
+		respond(w, all, http.StatusOK, nil)
 	}
 }
 
@@ -54,31 +63,29 @@ func (api *APIHandler) getBook() http.HandlerFunc {
 		id := v["id"]
 		book, err := api.store.Book(r.Context(), id)
 		if err != nil {
-			switch err {
-			case booklibrary.ErrInvalidID:
+			if errors.Is(err, booklibrary.ErrInvalidID) {
 				log.Printf("Client provided invalid ID for document: %s\n", id)
 				http.NotFound(w, r)
 				return
-			case booklibrary.ErrNotFound:
+			}
+			if errors.Is(err, booklibrary.ErrNotFound) {
 				log.Printf("Book with ID %s not found\n", id)
 				http.NotFound(w, r)
 				return
-			default:
-				log.Printf("Error reading from database: %v\n", err)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
 			}
+			log.Printf("Database error: %v\n", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
-		// Return OK with JSON payload
-		ok(w, book)
+		respond(w, book, http.StatusOK, nil)
 	}
 }
 
 func (api *APIHandler) addBook() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Read Book JSON object from HTTP body
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			log.Printf("Error reading request body: %v\n", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -104,14 +111,15 @@ func (api *APIHandler) addBook() http.HandlerFunc {
 
 		// Return Created with JSON payload
 		loc := fmt.Sprintf("%s/%s", r.URL.String(), added.ID)
-		created(w, added, loc)
+		h := map[string]string{"Location": loc}
+		respond(w, added, http.StatusCreated, h)
 	}
 }
 
 func (api *APIHandler) updateBook() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Read Book JSON object from HTTP body
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			log.Printf("Error reading request body: %v\n", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -132,29 +140,17 @@ func (api *APIHandler) updateBook() http.HandlerFunc {
 		id := v["id"]
 		updated, err := api.store.Update(r.Context(), id, &book)
 		if err != nil {
-			switch err {
-			case booklibrary.ErrInvalidID:
-				log.Printf("Client provided invalid ID for document: %s\n", id)
-				http.NotFound(w, r)
-				return
-			case booklibrary.ErrNotFound:
+			if errors.Is(err, booklibrary.ErrInvalidID) || errors.Is(err, booklibrary.ErrNotFound) {
 				log.Printf("Book with ID %s not found\n", id)
 				http.NotFound(w, r)
 				return
-			default:
-				log.Printf("Error reading from database: %v\n", err)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
 			}
-		}
-		if updated == nil {
-			log.Printf("Book with ID %s not found\n", id)
-			http.NotFound(w, r)
+			log.Printf("Database error: %v\n", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// Return OK with JSON payload
-		ok(w, updated)
+		respond(w, updated, http.StatusOK, nil)
 	}
 }
 
@@ -163,47 +159,39 @@ func (api *APIHandler) deleteBook() http.HandlerFunc {
 		v := mux.Vars(r)
 		id := v["id"]
 		if _, err := api.store.Remove(r.Context(), id); err != nil {
-			switch err {
-			case booklibrary.ErrInvalidID:
-				log.Printf("Client provided invalid ID for document: %s\n", id)
-				http.NotFound(w, r)
-				return
-			case booklibrary.ErrNotFound:
+			if errors.Is(err, booklibrary.ErrInvalidID) || errors.Is(err, booklibrary.ErrNotFound) {
 				log.Printf("Book with ID %s not found\n", id)
 				http.NotFound(w, r)
 				return
-			default:
-				log.Printf("Error reading from database: %v\n", err)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
 			}
+			log.Printf("Database error: %v\n", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
-		w.WriteHeader(http.StatusNoContent)
+		respond(w, nil, http.StatusNoContent, nil)
 	}
 }
 
-func ok(w http.ResponseWriter, v interface{}) {
-	content(w, v, http.StatusOK, nil)
-}
-
-func created(w http.ResponseWriter, v interface{}, location string) {
-	h := map[string]string{"Location": location}
-	content(w, v, http.StatusCreated, h)
-}
-
-func content(w http.ResponseWriter, v interface{}, status int, headers map[string]string) {
-	js, err := json.Marshal(v)
-	if err != nil {
-		log.Printf("Error marshalling object: %v\n", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+func respond(w http.ResponseWriter, obj interface{}, status int, headers map[string]string) {
+	var content []byte
+	if obj != nil {
+		var err error
+		content, err = json.Marshal(obj)
+		if err != nil {
+			log.Printf("Error marshalling object: %v\n", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
-
-	w.Header().Set("Content-Type", applicationJSON)
 	for h, v := range headers {
 		w.Header().Set(h, v)
 	}
+	if len(content) == 0 {
+		w.WriteHeader(status)
+		return
+	}
+	w.Header().Set("Content-Type", applicationJSON)
 	w.WriteHeader(status)
-	w.Write(js)
+	w.Write([]byte(content))
 }

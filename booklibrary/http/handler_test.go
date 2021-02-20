@@ -3,7 +3,8 @@ package http
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"sort"
@@ -17,20 +18,27 @@ import (
 )
 
 var allBooksTest = []struct {
-	name string
-	in   []*booklibrary.Book
-	want int
+	name  string
+	in    []*booklibrary.Book
+	limit int
+	want  int
 }{
-	{"get_multiple_books", mock.SampleData(), len(mock.SampleData())},
-	{"get_empty_collection", []*booklibrary.Book{}, 0},
+	{"get_multiple_books", mock.SampleData(), -1, len(mock.SampleData())},
+	{"get_first_book", mock.SampleData(), 1, 1},
+	{"get_multiple_books_with_limit", mock.SampleData(), 50, len(mock.SampleData())},
+	{"get_empty_collection", []*booklibrary.Book{}, -1, 0},
 }
 
 func TestGetAllBooks(t *testing.T) {
 	for _, tt := range allBooksTest {
 		t.Run(tt.name, func(t *testing.T) {
 			store, _ := mock.NewStorage(tt.in)
-			api := NewHandler(store)
-			r := httptest.NewRequest(http.MethodGet, "/api/books", nil)
+			api := NewAPIHandler(store)
+			path := "/api/books"
+			if tt.limit != -1 {
+				path = fmt.Sprintf("%s?limit=%d", path, tt.limit)
+			}
+			r := httptest.NewRequest(http.MethodGet, path, nil)
 			w := httptest.NewRecorder()
 			api.ServeHTTP(w, r)
 			resp := w.Result()
@@ -45,17 +53,19 @@ func TestGetAllBooks(t *testing.T) {
 				t.FailNow()
 			}
 
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				t.Logf("Error reading response body: %v", err)
 				t.FailNow()
 			}
+
 			var books []*booklibrary.Book
 			if err := json.Unmarshal(body, &books); err != nil {
 				t.Logf("Error unmarshaling JSON response: %v", err)
 				t.FailNow()
 			}
-			if got := len(books); got != tt.want {
+
+			if got := len(books); got > tt.want {
 				t.Errorf("Received an unexpected number of items, got %d, want %d", got, tt.want)
 			}
 		})
@@ -79,7 +89,7 @@ func TestGetBookByID(t *testing.T) {
 	for _, tt := range getBookTests {
 		t.Run(tt.name, func(t *testing.T) {
 			store, _ := mock.NewStorage(mock.SampleData())
-			api := NewHandler(store)
+			api := NewAPIHandler(store)
 			r := httptest.NewRequest(http.MethodGet, "/api/books/"+tt.in, nil)
 			w := httptest.NewRecorder()
 			api.ServeHTTP(w, r)
@@ -96,16 +106,18 @@ func TestGetBookByID(t *testing.T) {
 			}
 
 			want, _ := primitive.ObjectIDFromHex(tt.in)
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				t.Logf("Error reading response body: %v", err)
 				t.FailNow()
 			}
+
 			var book booklibrary.Book
 			if err := json.Unmarshal(body, &book); err != nil {
 				t.Logf("Error unmarshaling JSON response: %v", err)
 				t.FailNow()
 			}
+
 			if book.ID != want {
 				t.Errorf("Received unexected Book, got %q, want %q", book.ID, want)
 			}
@@ -130,7 +142,7 @@ func TestDeleteBook(t *testing.T) {
 	for _, tt := range deleteBookTests {
 		t.Run(tt.name, func(t *testing.T) {
 			store, _ := mock.NewStorage(mock.SampleData())
-			api := NewHandler(store)
+			api := NewAPIHandler(store)
 			r := httptest.NewRequest(http.MethodDelete, "/api/books/"+tt.in, nil)
 			w := httptest.NewRecorder()
 			api.ServeHTTP(w, r)
@@ -144,7 +156,7 @@ func TestDeleteBook(t *testing.T) {
 
 func TestAddBook(t *testing.T) {
 	store, _ := mock.NewStorage(mock.SampleData())
-	api := NewHandler(store)
+	api := NewAPIHandler(store)
 	book := &booklibrary.Book{
 		Author:      "Jörg Jooss",
 		Title:       "Go Testing in Action",
@@ -171,7 +183,7 @@ func TestAddBook(t *testing.T) {
 		t.FailNow()
 	}
 
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		t.Logf("Error reading response body: %v", err)
 		t.FailNow()
@@ -208,7 +220,7 @@ func TestUpdateBook(t *testing.T) {
 	for _, tt := range updateBookTests {
 		t.Run(tt.name, func(t *testing.T) {
 			store, _ := mock.NewStorage(mock.SampleData())
-			api := NewHandler(store)
+			api := NewAPIHandler(store)
 			id, _ := primitive.ObjectIDFromHex(tt.in)
 			book := &booklibrary.Book{
 				ID:          id,
@@ -242,7 +254,7 @@ func TestUpdateBook(t *testing.T) {
 				t.FailNow()
 			}
 
-			body, err = ioutil.ReadAll(resp.Body)
+			body, err = io.ReadAll(resp.Body)
 			if err != nil {
 				t.Logf("Error reading response body: %v", err)
 				t.FailNow()
@@ -285,7 +297,6 @@ func TestUpdateBook(t *testing.T) {
 			if gotStr != wantStr {
 				t.Errorf("Updated book has wrong set of keywords, got %q, want %q", gotStr, wantStr)
 			}
-
 		})
 	}
 }
