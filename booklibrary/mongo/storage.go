@@ -60,7 +60,7 @@ func NewStorage(mongoURI, database, collection string) (booklibrary.Storage, err
 }
 
 // All returns all books up to 'limit' instances.
-func (m *mongoCollectionStore) All(parent context.Context, limit int64) ([]*booklibrary.Book, error) {
+func (m *mongoCollectionStore) All(parent context.Context, limit int64) ([]booklibrary.Book, error) {
 	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
 	books, err := m.find(ctx, bson.M{}, limit)
@@ -71,46 +71,46 @@ func (m *mongoCollectionStore) All(parent context.Context, limit int64) ([]*book
 }
 
 // Book finds a book by its ID.
-func (m *mongoCollectionStore) Book(parent context.Context, id string) (*booklibrary.Book, error) {
+func (m *mongoCollectionStore) Book(parent context.Context, id string) (booklibrary.Book, error) {
 	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		log.Printf("Parsing ObjectID %s failed: %s\n", id, err)
-		return nil, booklibrary.ErrInvalidID
+		return booklibrary.Book{}, booklibrary.ErrInvalidID
 	}
 
 	filter := bson.M{"_id": oid}
 	books, err := m.find(ctx, filter, 1)
 	if err != nil {
-		return nil, err
+		return booklibrary.Book{}, err
 	}
 	if len(books) == 0 {
-		return nil, booklibrary.ErrNotFound
+		return booklibrary.Book{}, booklibrary.ErrNotFound
 	}
 	return books[0], nil
 }
 
 // Add adds a new book
-func (m *mongoCollectionStore) Add(parent context.Context, book *booklibrary.Book) (*booklibrary.Book, error) {
+func (m *mongoCollectionStore) Add(parent context.Context, book booklibrary.Book) (booklibrary.Book, error) {
 	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
 
 	res, err := m.collection.InsertOne(ctx, book)
 	if err != nil {
 		log.Printf("Inserting document failed: %s\n", err)
-		return nil, err
+		return booklibrary.Book{}, err
 	}
 	book.ID = res.InsertedID.(primitive.ObjectID)
 	return book, nil
 }
 
 // Update a book for specific ID
-func (m *mongoCollectionStore) Update(parent context.Context, id string, book *booklibrary.Book) (*booklibrary.Book, error) {
+func (m *mongoCollectionStore) Update(parent context.Context, id string, book booklibrary.Book) (booklibrary.Book, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		log.Printf("Parsing ObjectID %s failed: %s\n", id, err)
-		return nil, booklibrary.ErrInvalidID
+		return booklibrary.Book{}, booklibrary.ErrInvalidID
 	}
 
 	ctx, cancel := context.WithTimeout(parent, timeout)
@@ -127,26 +127,26 @@ func (m *mongoCollectionStore) Update(parent context.Context, id string, book *b
 	if err := res.Err(); err != nil {
 		log.Printf("Updating document %s failed: %s\n", id, err)
 		if err != mongo.ErrNoDocuments {
-			return nil, err
+			return booklibrary.Book{}, err
 		}
-		return nil, booklibrary.ErrNotFound
+		return booklibrary.Book{}, booklibrary.ErrNotFound
 	}
 
 	var b booklibrary.Book
 	err = res.Decode(&b)
 	if err != nil {
 		log.Printf("Decoding document failed: %s\n", err)
-		return nil, err
+		return booklibrary.Book{}, err
 	}
-	return &b, nil
+	return b, nil
 }
 
 // Remove deletes a book from the database
-func (m *mongoCollectionStore) Remove(parent context.Context, id string) (*booklibrary.Book, error) {
+func (m *mongoCollectionStore) Remove(parent context.Context, id string) (booklibrary.Book, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		log.Printf("Parsing ObjectID %s failed: %s\n", id, err)
-		return nil, booklibrary.ErrInvalidID
+		return booklibrary.Book{}, booklibrary.ErrInvalidID
 	}
 
 	ctx, cancel := context.WithTimeout(parent, timeout)
@@ -157,21 +157,21 @@ func (m *mongoCollectionStore) Remove(parent context.Context, id string) (*bookl
 	if err := res.Err(); err != nil {
 		log.Printf("Deleting document %s failed: %s\n", id, err)
 		if err != mongo.ErrNoDocuments {
-			return nil, err
+			return booklibrary.Book{}, err
 		}
-		return nil, booklibrary.ErrNotFound
+		return booklibrary.Book{}, booklibrary.ErrNotFound
 	}
 
 	var b booklibrary.Book
 	err = res.Decode(&b)
 	if err != nil {
 		log.Printf("Decoding document failed: %s\n", err)
-		return nil, err
+		return booklibrary.Book{}, err
 	}
-	return &b, nil
+	return b, nil
 }
 
-func (m *mongoCollectionStore) find(parent context.Context, filter primitive.M, limit int64) ([]*booklibrary.Book, error) {
+func (m *mongoCollectionStore) find(parent context.Context, filter primitive.M, limit int64) ([]booklibrary.Book, error) {
 	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
 
@@ -183,18 +183,18 @@ func (m *mongoCollectionStore) find(parent context.Context, filter primitive.M, 
 	}
 	defer cur.Close(ctx)
 
-	books := []*booklibrary.Book{}
+	books := []booklibrary.Book{}
 	for cur.Next(ctx) {
 		var b booklibrary.Book
 		err := cur.Decode(&b)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
-				return []*booklibrary.Book{}, nil
+				return []booklibrary.Book{}, nil
 			}
 			log.Printf("Decoding document failed: %s\n", err)
 			break
 		}
-		books = append(books, &b)
+		books = append(books, b)
 	}
 
 	if err := cur.Err(); err != nil {

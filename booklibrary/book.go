@@ -22,14 +22,14 @@ type Keyword struct {
 }
 
 // MarshalJSON serializes a Book with its ReleaseDate rendered as Unix time
-func (b *Book) MarshalJSON() ([]byte, error) {
+func (b Book) MarshalJSON() ([]byte, error) {
 	type Dto Book
 	return json.Marshal(struct {
 		ReleaseDate int64 `json:"releaseDate"`
-		*Dto
+		Dto
 	}{
 		ReleaseDate: b.ReleaseDate.Unix(),
-		Dto:         (*Dto)(b),
+		Dto:         (Dto)(b),
 	})
 }
 

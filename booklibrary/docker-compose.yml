@@ -1,0 +1,24 @@
+version: "3.8"
+
+volumes:
+  mongodata:
+
+services:
+  mongodb:
+    image: mongo:${MONGO_TAG:-4.4}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+
+  booklibrary:
+    image: booklibrary-go:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: ${DOCKERFILE:-Dockerfile}
+    ports:
+      - "5000:5000"
+    environment:
+      - BOOKLIBRARY_MONGOURI=${BOOKLIBRARY_MONGOURI:-mongodb://mongodb}
+    depends_on:
+      - mongodb

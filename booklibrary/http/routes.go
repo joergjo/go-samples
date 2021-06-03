@@ -18,13 +18,13 @@ import (
 
 const applicationJSON = "application/json"
 
-func (api *APIHandler) routes() {
-	api.Handle("/api/books", handlerFor(api.allBooks(), "allBooks")).Methods(http.MethodGet)
-	api.Handle("/api/books/{id}", handlerFor(api.getBook(), "getBook")).Methods(http.MethodGet)
-	api.Handle("/api/books", handlerFor(api.addBook(), "addBook")).Methods(http.MethodPost)
-	api.Handle("/api/books/{id}", handlerFor(api.updateBook(), "updateBook")).Methods(http.MethodPut)
-	api.Handle("/api/books/{id}", handlerFor(api.deleteBook(), "deleteBook")).Methods(http.MethodDelete)
-	api.Handle("/metrics", promhttp.Handler())
+func (a *APIHandler) routes() {
+	a.Handle("/api/books", handlerFor(a.allBooks(), "allBooks")).Methods(http.MethodGet)
+	a.Handle("/api/books/{id}", handlerFor(a.getBook(), "getBook")).Methods(http.MethodGet)
+	a.Handle("/api/books", handlerFor(a.addBook(), "addBook")).Methods(http.MethodPost)
+	a.Handle("/api/books/{id}", handlerFor(a.updateBook(), "updateBook")).Methods(http.MethodPut)
+	a.Handle("/api/books/{id}", handlerFor(a.deleteBook(), "deleteBook")).Methods(http.MethodDelete)
+	a.Handle("/metrics", promhttp.Handler())
 }
 
 func handlerFor(handlerFunc http.HandlerFunc, handlerName string) http.Handler {
@@ -37,7 +37,7 @@ func handlerFor(handlerFunc http.HandlerFunc, handlerName string) http.Handler {
 	)
 }
 
-func (api *APIHandler) allBooks() http.HandlerFunc {
+func (a *APIHandler) allBooks() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		l := r.URL.Query().Get("limit")
 		limit, err := strconv.Atoi(l)
@@ -46,7 +46,7 @@ func (api *APIHandler) allBooks() http.HandlerFunc {
 		}
 		log.Printf("Limiting: result to %d entries\n", limit)
 
-		all, err := api.store.All(r.Context(), int64(limit))
+		all, err := a.store.All(r.Context(), int64(limit))
 		if err != nil {
 			log.Printf("Database error: %v\n", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -57,11 +57,11 @@ func (api *APIHandler) allBooks() http.HandlerFunc {
 	}
 }
 
-func (api *APIHandler) getBook() http.HandlerFunc {
+func (a *APIHandler) getBook() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		v := mux.Vars(r)
 		id := v["id"]
-		book, err := api.store.Book(r.Context(), id)
+		book, err := a.store.Book(r.Context(), id)
 		if err != nil {
 			if errors.Is(err, booklibrary.ErrInvalidID) {
 				log.Printf("Client provided invalid ID for document: %s\n", id)
@@ -82,7 +82,7 @@ func (api *APIHandler) getBook() http.HandlerFunc {
 	}
 }
 
-func (api *APIHandler) addBook() http.HandlerFunc {
+func (a *APIHandler) addBook() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Read Book JSON object from HTTP body
 		body, err := io.ReadAll(r.Body)
@@ -102,7 +102,7 @@ func (api *APIHandler) addBook() http.HandlerFunc {
 		}
 
 		// Add to storage
-		added, err := api.store.Add(r.Context(), &book)
+		added, err := a.store.Add(r.Context(), book)
 		if err != nil {
 			log.Printf("Error adding book to database: %v\n", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -110,13 +110,13 @@ func (api *APIHandler) addBook() http.HandlerFunc {
 		}
 
 		// Return Created with JSON payload
-		loc := fmt.Sprintf("%s/%s", r.URL.String(), added.ID)
+		loc := fmt.Sprintf("%s/%s", r.URL.String(), added.ID.Hex())
 		h := map[string]string{"Location": loc}
 		respond(w, added, http.StatusCreated, h)
 	}
 }
 
-func (api *APIHandler) updateBook() http.HandlerFunc {
+func (a *APIHandler) updateBook() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Read Book JSON object from HTTP body
 		body, err := io.ReadAll(r.Body)
@@ -138,7 +138,7 @@ func (api *APIHandler) updateBook() http.HandlerFunc {
 		// Updated book by ID in request URI
 		v := mux.Vars(r)
 		id := v["id"]
-		updated, err := api.store.Update(r.Context(), id, &book)
+		updated, err := a.store.Update(r.Context(), id, book)
 		if err != nil {
 			if errors.Is(err, booklibrary.ErrInvalidID) || errors.Is(err, booklibrary.ErrNotFound) {
 				log.Printf("Book with ID %s not found\n", id)

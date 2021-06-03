@@ -19,14 +19,14 @@ import (
 
 var allBooksTest = []struct {
 	name  string
-	in    []*booklibrary.Book
+	in    []booklibrary.Book
 	limit int
 	want  int
 }{
 	{"get_multiple_books", mock.SampleData(), -1, len(mock.SampleData())},
 	{"get_first_book", mock.SampleData(), 1, 1},
 	{"get_multiple_books_with_limit", mock.SampleData(), 50, len(mock.SampleData())},
-	{"get_empty_collection", []*booklibrary.Book{}, -1, 0},
+	{"get_empty_collection", []booklibrary.Book{}, -1, 0},
 }
 
 func TestGetAllBooks(t *testing.T) {
@@ -44,25 +44,21 @@ func TestGetAllBooks(t *testing.T) {
 			resp := w.Result()
 
 			if got := resp.StatusCode; got != http.StatusOK {
-				t.Logf("Received unexpected HTTP status code, got %d, want %d", got, http.StatusOK)
-				t.FailNow()
+				t.Fatalf("Received unexpected HTTP status code, got %d, want %d", got, http.StatusOK)
 			}
 
 			if got := resp.Header.Get("Content-Type"); got != applicationJSON {
-				t.Logf("Received unexpected HTTP content, got %q, want %q", got, applicationJSON)
-				t.FailNow()
+				t.Fatalf("Received unexpected HTTP content, got %q, want %q", got, applicationJSON)
 			}
 
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
-				t.Logf("Error reading response body: %v", err)
-				t.FailNow()
+				t.Fatalf("Error reading response body: %v", err)
 			}
 
 			var books []*booklibrary.Book
 			if err := json.Unmarshal(body, &books); err != nil {
-				t.Logf("Error unmarshaling JSON response: %v", err)
-				t.FailNow()
+				t.Fatalf("Error unmarshaling JSON response: %v", err)
 			}
 
 			if got := len(books); got > tt.want {
@@ -77,12 +73,8 @@ var getBookTests = []struct {
 	in   string
 	want int
 }{
-	{"get_unknown_id", "000000000000000000000000", 404},
 	{"get_by_id", "000000000000000000000001", 200},
-	{"get_by_id", "000000000000000000000002", 200},
-	{"get_by_id", "000000000000000000000003", 200},
 	{"get_unknown_id", "000000000000000000000004", 404},
-	{"get_unknown_id", "012345678901234567890123", 404},
 }
 
 func TestGetBookByID(t *testing.T) {
@@ -108,14 +100,12 @@ func TestGetBookByID(t *testing.T) {
 			want, _ := primitive.ObjectIDFromHex(tt.in)
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
-				t.Logf("Error reading response body: %v", err)
-				t.FailNow()
+				t.Fatalf("Error reading response body: %v", err)
 			}
 
 			var book booklibrary.Book
 			if err := json.Unmarshal(body, &book); err != nil {
-				t.Logf("Error unmarshaling JSON response: %v", err)
-				t.FailNow()
+				t.Fatalf("Error unmarshaling JSON response: %v", err)
 			}
 
 			if book.ID != want {
@@ -130,12 +120,8 @@ var deleteBookTests = []struct {
 	in   string
 	want int
 }{
-	{"delete_unknown_id", "000000000000000000000000", 404},
-	{"delete_by_id", "000000000000000000000001", 204},
 	{"delete_by_id", "000000000000000000000002", 204},
-	{"delete_by_id", "000000000000000000000003", 204},
 	{"delete_unknown_id", "000000000000000000000004", 404},
-	{"delete_unknown_id", "012345678901234567890123", 404},
 }
 
 func TestDeleteBook(t *testing.T) {
@@ -148,7 +134,7 @@ func TestDeleteBook(t *testing.T) {
 			api.ServeHTTP(w, r)
 
 			if got := w.Result().StatusCode; got != tt.want {
-				t.Fatalf("Received unexpected HTTP status code, got %d, want %d", got, tt.want)
+				t.Errorf("Received unexpected HTTP status code, got %d, want %d", got, tt.want)
 			}
 		})
 	}
@@ -175,35 +161,30 @@ func TestAddBook(t *testing.T) {
 
 	if got := resp.StatusCode; got != http.StatusCreated {
 		t.Fatalf("Received unexpected HTTP status code, got %d, want %d", got, http.StatusCreated)
-		t.FailNow()
 	}
 
 	if got := resp.Header.Get("Content-Type"); got != applicationJSON {
-		t.Logf("Received unexpected HTTP content, got %q, want %q", got, applicationJSON)
-		t.FailNow()
+		t.Fatalf("Received unexpected HTTP content, got %q, want %q", got, applicationJSON)
 	}
 
 	body, err = io.ReadAll(resp.Body)
 	if err != nil {
-		t.Logf("Error reading response body: %v", err)
-		t.FailNow()
+		t.Fatalf("Error reading response body: %v", err)
 	}
 
 	book = &booklibrary.Book{}
 	if err := json.Unmarshal(body, book); err != nil {
-		t.Logf("Error unmarshaling JSON response: %v", err)
-		t.FailNow()
+		t.Fatalf("Error unmarshaling JSON response: %v", err)
 	}
 
 	got := resp.Header.Get("Location")
 	if got == "" {
-		t.Logf("No Location header present in response")
-		t.FailNow()
+		t.Fatalf("No Location header present in response")
 	}
 
 	want := "/api/books/" + book.ID.Hex()
 	if got != want {
-		t.Logf("Incorrect Location header, want %q, got %q", want, got)
+		t.Errorf("Incorrect Location header, want %q, got %q", want, got)
 	}
 }
 
@@ -212,7 +193,7 @@ var updateBookTests = []struct {
 	in   string
 	want int
 }{
-	{"update_by_id", "000000000000000000000001", 200},
+	{"update_by_id", "000000000000000000000003", 200},
 	{"update_invalid_id", "000000000000000000000004", 404},
 }
 
@@ -231,8 +212,7 @@ func TestUpdateBook(t *testing.T) {
 			}
 			body, err := json.Marshal(book)
 			if err != nil {
-				t.Logf("Error marshaling Book: %v.", err)
-				t.FailNow()
+				t.Fatalf("Error marshaling Book: %v.", err)
 			}
 			r := httptest.NewRequest(http.MethodPut, "/api/books/"+book.ID.Hex(), bytes.NewBuffer(body))
 			w := httptest.NewRecorder()
@@ -241,7 +221,6 @@ func TestUpdateBook(t *testing.T) {
 
 			if got := resp.StatusCode; got != tt.want {
 				t.Fatalf("Received unexpected HTTP status code, got %d, want %d", got, tt.want)
-				t.FailNow()
 			}
 
 			if resp.StatusCode != http.StatusOK {
@@ -250,20 +229,17 @@ func TestUpdateBook(t *testing.T) {
 			}
 
 			if got := resp.Header.Get("Content-Type"); got != applicationJSON {
-				t.Logf("Received unexpected HTTP content, got %q, want %q", got, applicationJSON)
-				t.FailNow()
+				t.Fatalf("Received unexpected HTTP content, got %q, want %q", got, applicationJSON)
 			}
 
 			body, err = io.ReadAll(resp.Body)
 			if err != nil {
-				t.Logf("Error reading response body: %v", err)
-				t.FailNow()
+				t.Fatalf("Error reading response body: %v", err)
 			}
 
 			got := &booklibrary.Book{}
 			if err := json.Unmarshal(body, got); err != nil {
-				t.Logf("Error unmarshaling JSON response: %v", err)
-				t.FailNow()
+				t.Fatalf("Error unmarshaling JSON response: %v", err)
 			}
 
 			if got.ID != book.ID {

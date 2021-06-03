@@ -13,9 +13,9 @@ var (
 
 // Storage provides access to manage Book instances
 type Storage interface {
-	All(context context.Context, limit int64) ([]*Book, error)
-	Book(context context.Context, id string) (*Book, error)
-	Add(context context.Context, book *Book) (*Book, error)
-	Update(context context.Context, id string, book *Book) (*Book, error)
-	Remove(context context.Context, id string) (*Book, error)
+	All(context context.Context, limit int64) ([]Book, error)
+	Book(context context.Context, id string) (Book, error)
+	Add(context context.Context, book Book) (Book, error)
+	Update(context context.Context, id string, book Book) (Book, error)
+	Remove(context context.Context, id string) (Book, error)
 }

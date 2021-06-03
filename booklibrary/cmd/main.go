@@ -34,27 +34,23 @@ func main() {
 		log.Fatalf("Fatal error creating storage implementation: %v\n", err)
 	}
 	srv := newServer(store)
-	shutdown := make(chan struct{})
 
 	go func() {
-		stop := make(chan os.Signal, 1)
-		signal.Notify(stop, os.Interrupt, os.Kill)
-		<-stop
-
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		if err := srv.Shutdown(ctx); err != nil {
-			log.Printf("Error shutting down server: %v\n", err)
+		log.Printf("Server starting, listening on 0.0.0.0:%d...\n", appConfig.port)
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			log.Fatalf("Fatal error in ListenAndServer(): %v\n", err)
 		}
-		close(shutdown)
-
 	}()
 
-	log.Printf("Server starting, listening on 0.0.0.0:%d...\n", appConfig.port)
-	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-		log.Fatalf("Fatal error in ListenAndServer(): %v\n", err)
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+	<-stop
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Error shutting down server: %v\n", err)
 	}
-	<-shutdown
 	log.Println("Server has shut down")
 }
 
