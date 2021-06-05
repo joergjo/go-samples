@@ -38,7 +38,7 @@ func main() {
 	go func() {
 		log.Printf("Server starting, listening on 0.0.0.0:%d...\n", appConfig.port)
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-			log.Fatalf("Fatal error in ListenAndServer(): %v\n", err)
+			log.Fatalf("Fatal error in ListenAndServe(): %v\n", err)
 		}
 	}()
 

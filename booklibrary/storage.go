@@ -7,8 +7,8 @@ import (
 
 // ErrInvalidID represents an invalid book ID
 var (
-	ErrInvalidID = errors.New("String is not valid book ID")
-	ErrNotFound  = errors.New("Book not found")
+	ErrInvalidID = errors.New("string is not valid book ID")
+	ErrNotFound  = errors.New("book not found")
 )
 
 // Storage provides access to manage Book instances

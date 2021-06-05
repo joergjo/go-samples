@@ -173,25 +173,32 @@ func (api *APIHandler) deleteBook() http.HandlerFunc {
 	}
 }
 
-func respond(w http.ResponseWriter, obj interface{}, status int, headers map[string]string) {
-	var content []byte
-	if obj != nil {
-		var err error
-		content, err = json.Marshal(obj)
-		if err != nil {
-			log.Printf("Error marshalling object: %v\n", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+func respond(w http.ResponseWriter, v interface{}, status int, headers map[string]string) {
+	body, err := marshal(v)
+	if err != nil {
+		log.Printf("Error marshalling object: %v\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	for h, v := range headers {
-		w.Header().Set(h, v)
+
+	for h, val := range headers {
+		w.Header().Set(h, val)
 	}
-	if len(content) == 0 {
+	if len(body) == 0 {
 		w.WriteHeader(status)
 		return
 	}
+
 	w.Header().Set("Content-Type", applicationJSON)
 	w.WriteHeader(status)
-	w.Write([]byte(content))
+	w.Write([]byte(body))
+}
+
+func marshal(v interface{}) ([]byte, error) {
+	if v == nil {
+		return nil, nil
+	}
+	b, err := json.Marshal(v)
+	return b, err
+
 }
