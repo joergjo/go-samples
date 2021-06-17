@@ -14,7 +14,7 @@ type APIHandler struct {
 	store booklibrary.Storage
 }
 
-var _ http.Handler = &APIHandler{}
+var _ http.Handler = (*APIHandler)(nil)
 
 // NewAPIHandler creates a new Server and injects a Storage implementation
 func NewAPIHandler(store booklibrary.Storage) *APIHandler {

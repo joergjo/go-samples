@@ -1,24 +1,36 @@
-FROM alpine:3 as authority
-RUN mkdir /user && \
-    echo 'appuser:x:1000:1000:appuser:/:' > /user/passwd && \
-    echo 'appgroup:x:1000:' > /user/group
-RUN apk --no-cache add ca-certificates
+FROM golang:1.16 AS builder
 
-FROM golang:1.16 as builder
 WORKDIR /build
 
-# Restore depenencies
-COPY go.* ./
-RUN go mod download
-# Build app
-COPY . .
-RUN CGO_ENABLED=0 go build -o booklibrary-api ./cmd/main.go
+# Enable Go's DNS resolver to read from /etc/hosts
+RUN echo "hosts: files dns" > /etc/nsswitch.conf.min
 
-# Set up runtime image
-FROM scratch
-COPY --from=authority /user/group /user/passwd /etc/
-COPY --from=authority /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY --from=builder /build/booklibrary-api ./
-USER appuser:appgroup
+# Create a minimal passwd so we can run as non-root in the container
+RUN echo "nobody:x:65534:65534:Nobody:/:" > /etc/passwd.min
+
+# Fetch latest CA certificates
+RUN apt-get update && \
+    apt-get install -y ca-certificates
+
+# Only download Go modules (improves build caching)
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy our source code over and build the binary
+COPY . .
+RUN CGO_ENABLED=0 go build -ldflags '-s -w' -tags 'osusergo netgo' -o booklibrary-api ./cmd/main.go
+
+FROM scratch AS final
 EXPOSE 5000
-ENTRYPOINT ["./booklibrary-api"]
+
+# Copy over the binary artifact
+COPY --from=builder /build/booklibrary-api /
+
+# Copy configuration from builder
+COPY --from=builder /etc/nsswitch.conf.min /etc/nsswitch.conf
+COPY --from=builder /etc/passwd.min /etc/passwd
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+USER nobody
+
+ENTRYPOINT ["/booklibrary-api"]

@@ -13,7 +13,6 @@ import (
 
 	"github.com/joergjo/go-samples/booklibrary"
 	api "github.com/joergjo/go-samples/booklibrary/http"
-	"github.com/joergjo/go-samples/booklibrary/mock"
 	"github.com/joergjo/go-samples/booklibrary/mongo"
 )
 
@@ -26,7 +25,7 @@ var appConfig = struct {
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	log.SetPrefix("[booklibrary] ")
+	log.SetPrefix("[booklibrary-api] ")
 
 	config()
 	store, err := newStorage()
@@ -49,13 +48,16 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("Error shutting down server: %v\n", err)
+		log.Fatalf("Fatal error shutting down server: %v\n", err)
 	}
 	log.Println("Server has shut down")
 }
 
 func config() {
 	mongoURI := os.Getenv("BOOKLIBRARY_MONGOURI")
+	if mongoURI == "" {
+		mongoURI = "mongodb://localhost"
+	}
 	port, err := strconv.Atoi(os.Getenv(("BOOKLIBRARY_PORT")))
 	if err != nil {
 		port = 5000
@@ -76,17 +78,12 @@ func config() {
 }
 
 func newStorage() (booklibrary.Storage, error) {
-	if appConfig.mongoURI == "" {
-		log.Println("Using in-memory data store.")
-		s, err := mock.NewStorage(mock.SampleData())
-		return s, err
-	}
-	log.Printf("Connecting to MongoDB at '%s'.\n", appConfig.mongoURI)
+	log.Printf("Connecting to MongoDB at %q.\n", appConfig.mongoURI)
 	s, err := mongo.NewStorage(appConfig.mongoURI, appConfig.db, appConfig.collection)
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("Connected to MongoDB at '%s'.\n", appConfig.mongoURI)
+	log.Printf("Connected to MongoDB at %q.\n", appConfig.mongoURI)
 	return s, nil
 }
 

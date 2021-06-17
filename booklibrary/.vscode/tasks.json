@@ -10,9 +10,18 @@
             "args": [
                 "build",
                 "-o",
-                "${workspaceFolderBasename}.exe",
+                "${workspaceFolderBasename}-api",
                 "cmd/main.go"
             ],
+            "windows":{
+                "command": "go",
+                "args": [
+                    "build",
+                    "-o",
+                    "${workspaceFolderBasename}-api.exe",
+                    "cmd/main.go"   
+                ]             
+            },
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -25,6 +34,15 @@
             "label": "run",
             "command": "go run ${file}",
             "group": "build"
-        }
+        },
+        {
+            "label": "test",
+            "command": "go",
+            "args": ["test", "-v", "./..."],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+        },
     ]
 }

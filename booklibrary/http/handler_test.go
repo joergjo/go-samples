@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,20 +20,32 @@ import (
 
 var allBooksTest = []struct {
 	name  string
-	in    []booklibrary.Book
+	in    map[string]booklibrary.Book
 	limit int
 	want  int
 }{
-	{"get_multiple_books", mock.SampleData(), -1, len(mock.SampleData())},
-	{"get_first_book", mock.SampleData(), 1, 1},
-	{"get_multiple_books_with_limit", mock.SampleData(), 50, len(mock.SampleData())},
-	{"get_empty_collection", []booklibrary.Book{}, -1, 0},
+	{"get_multiple_books", mock.SampleData(5), -1, 5},
+	{"get_first_book", mock.SampleData(5), 1, 1},
+	{"get_multiple_books_with_limit", mock.SampleData(10), 50, 10},
+	{"get_empty_collection", make(map[string]booklibrary.Book), -1, 0},
 }
 
 func TestGetAllBooks(t *testing.T) {
 	for _, tt := range allBooksTest {
 		t.Run(tt.name, func(t *testing.T) {
-			store, _ := mock.NewStorage(tt.in)
+			store := &mock.MockStore{}
+			store.AllFn = func(_ context.Context, _ int) ([]booklibrary.Book, error) {
+				i := 0
+				bb := make([]booklibrary.Book, tt.want)
+				for _, b := range tt.in {
+					if i == tt.want {
+						break
+					}
+					bb[i] = b
+					i++
+				}
+				return bb, nil
+			}
 			api := NewAPIHandler(store)
 			path := "/api/books"
 			if tt.limit != -1 {
@@ -62,7 +75,7 @@ func TestGetAllBooks(t *testing.T) {
 			}
 
 			if got := len(books); got > tt.want {
-				t.Errorf("Received an unexpected number of items, got %d, want %d", got, tt.want)
+				t.Fatalf("Received an unexpected number of items, got %d, want %d", got, tt.want)
 			}
 		})
 	}
@@ -80,7 +93,21 @@ var getBookTests = []struct {
 func TestGetBookByID(t *testing.T) {
 	for _, tt := range getBookTests {
 		t.Run(tt.name, func(t *testing.T) {
-			store, _ := mock.NewStorage(mock.SampleData())
+			store := &mock.MockStore{}
+			id, err := primitive.ObjectIDFromHex("000000000000000000000001")
+			if err != nil {
+				t.Fatalf("Error creating ObjectID")
+			}
+			b := booklibrary.Book{
+				ID: id,
+			}
+			store.BookFn = func(_ context.Context, id string) (booklibrary.Book, error) {
+				if id != string(b.ID.Hex()) {
+					return booklibrary.Book{}, booklibrary.ErrNotFound
+				}
+				return b, nil
+			}
+
 			api := NewAPIHandler(store)
 			r := httptest.NewRequest(http.MethodGet, "/api/books/"+tt.in, nil)
 			w := httptest.NewRecorder()
@@ -89,7 +116,7 @@ func TestGetBookByID(t *testing.T) {
 
 			got := resp.StatusCode
 			if got != tt.want {
-				t.Errorf("Received unexpected HTTP status code, got %d, want %d", got, tt.want)
+				t.Fatalf("Received unexpected HTTP status code, got %d, want %d", got, tt.want)
 			}
 
 			if got != http.StatusOK {
@@ -109,7 +136,7 @@ func TestGetBookByID(t *testing.T) {
 			}
 
 			if book.ID != want {
-				t.Errorf("Received unexected Book, got %q, want %q", book.ID, want)
+				t.Fatalf("Received unexected Book, got %q, want %q", book.ID, want)
 			}
 		})
 	}
@@ -120,28 +147,47 @@ var deleteBookTests = []struct {
 	in   string
 	want int
 }{
-	{"delete_by_id", "000000000000000000000002", 204},
+	{"delete_by_id", "000000000000000000000001", 204},
 	{"delete_unknown_id", "000000000000000000000004", 404},
 }
 
 func TestDeleteBook(t *testing.T) {
 	for _, tt := range deleteBookTests {
 		t.Run(tt.name, func(t *testing.T) {
-			store, _ := mock.NewStorage(mock.SampleData())
+			store := &mock.MockStore{}
+			id, err := primitive.ObjectIDFromHex("000000000000000000000001")
+			if err != nil {
+				t.Fatalf("Error creating ObjectID")
+			}
+			b := booklibrary.Book{
+				ID: id,
+			}
+			store.RemoveFn = func(_ context.Context, id string) (booklibrary.Book, error) {
+				if id != string(b.ID.Hex()) {
+					return booklibrary.Book{}, booklibrary.ErrNotFound
+				}
+				return b, nil
+			}
+
 			api := NewAPIHandler(store)
 			r := httptest.NewRequest(http.MethodDelete, "/api/books/"+tt.in, nil)
 			w := httptest.NewRecorder()
 			api.ServeHTTP(w, r)
 
 			if got := w.Result().StatusCode; got != tt.want {
-				t.Errorf("Received unexpected HTTP status code, got %d, want %d", got, tt.want)
+				t.Fatalf("Received unexpected HTTP status code, got %d, want %d", got, tt.want)
 			}
 		})
 	}
 }
 
 func TestAddBook(t *testing.T) {
-	store, _ := mock.NewStorage(mock.SampleData())
+	store := &mock.MockStore{}
+	store.AddFn = func(_ context.Context, book booklibrary.Book) (booklibrary.Book, error) {
+		book.ID = primitive.NewObjectID()
+		return book, nil
+	}
+
 	api := NewAPIHandler(store)
 	book := &booklibrary.Book{
 		Author:      "Jörg Jooss",
@@ -184,7 +230,7 @@ func TestAddBook(t *testing.T) {
 
 	want := "/api/books/" + book.ID.Hex()
 	if got != want {
-		t.Errorf("Incorrect Location header, want %q, got %q", want, got)
+		t.Fatalf("Incorrect Location header, want %q, got %q", want, got)
 	}
 }
 
@@ -200,10 +246,20 @@ var updateBookTests = []struct {
 func TestUpdateBook(t *testing.T) {
 	for _, tt := range updateBookTests {
 		t.Run(tt.name, func(t *testing.T) {
-			store, _ := mock.NewStorage(mock.SampleData())
-			api := NewAPIHandler(store)
-			id, _ := primitive.ObjectIDFromHex(tt.in)
-			book := &booklibrary.Book{
+			store := &mock.MockStore{}
+			store.UpdateFn = func(_ context.Context, id string, book booklibrary.Book) (booklibrary.Book, error) {
+				if id != "000000000000000000000003" {
+					return booklibrary.Book{}, booklibrary.ErrNotFound
+				}
+				return book, nil
+			}
+
+			id, err := primitive.ObjectIDFromHex(tt.in)
+			if err != nil {
+				t.Fatalf("Error creating ObjectID")
+			}
+
+			book := booklibrary.Book{
 				ID:          id,
 				Author:      "Jörg Jooss",
 				Title:       "Go Testing in 24 Minutes",
@@ -214,6 +270,8 @@ func TestUpdateBook(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Error marshaling Book: %v.", err)
 			}
+
+			api := NewAPIHandler(store)
 			r := httptest.NewRequest(http.MethodPut, "/api/books/"+book.ID.Hex(), bytes.NewBuffer(body))
 			w := httptest.NewRecorder()
 			api.ServeHTTP(w, r)
@@ -243,16 +301,16 @@ func TestUpdateBook(t *testing.T) {
 			}
 
 			if got.ID != book.ID {
-				t.Errorf("Updated book has wrong ID, got %q, want %q", got.ID, book.ID)
+				t.Fatalf("Updated book has wrong ID, got %q, want %q", got.ID, book.ID)
 			}
 			if got.Author != book.Author {
-				t.Errorf("Updated book has wrong author, got %q, want %q", got.Author, book.Author)
+				t.Fatalf("Updated book has wrong author, got %q, want %q", got.Author, book.Author)
 			}
 			if got.Title != book.Title {
-				t.Errorf("Updated book has wrong title, got %q, want %q", got.Title, book.Title)
+				t.Fatalf("Updated book has wrong title, got %q, want %q", got.Title, book.Title)
 			}
 			if got.ReleaseDate.UTC() != book.ReleaseDate.UTC() {
-				t.Errorf("Updated book has wrong release date, got %v, want %v", got.ReleaseDate.UTC(), book.ReleaseDate.UTC())
+				t.Fatalf("Updated book has wrong release date, got %v, want %v", got.ReleaseDate.UTC(), book.ReleaseDate.UTC())
 			}
 
 			gotKW := []string{}
@@ -271,7 +329,7 @@ func TestUpdateBook(t *testing.T) {
 			wantStr := strings.Join(wantKW, " ")
 
 			if gotStr != wantStr {
-				t.Errorf("Updated book has wrong set of keywords, got %q, want %q", gotStr, wantStr)
+				t.Fatalf("Updated book has wrong set of keywords, got %q, want %q", gotStr, wantStr)
 			}
 		})
 	}

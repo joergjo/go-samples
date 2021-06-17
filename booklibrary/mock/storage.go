@@ -2,6 +2,7 @@ package mock
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/joergjo/go-samples/booklibrary"
@@ -9,103 +10,55 @@ import (
 )
 
 // mockStore abstracts the data access from the underlying data store
-type mockStore struct {
-	items map[string]booklibrary.Book
+type MockStore struct {
+	AllFn    func(ctx context.Context, limit int) ([]booklibrary.Book, error)
+	BookFn   func(ctx context.Context, id string) (booklibrary.Book, error)
+	AddFn    func(ctx context.Context, book booklibrary.Book) (booklibrary.Book, error)
+	UpdateFn func(ctx context.Context, id string, book booklibrary.Book) (booklibrary.Book, error)
+	RemoveFn func(ctx context.Context, id string) (booklibrary.Book, error)
 }
 
 // Compile-time check to verify we implement Storage
-var _ booklibrary.Storage = &mockStore{}
+var _ booklibrary.Storage = (*MockStore)(nil)
 
 // NewStorage creates a new Storage instance
-func NewStorage(books []booklibrary.Book) (booklibrary.Storage, error) {
-	m := &mockStore{items: make(map[string]booklibrary.Book)}
-	for _, b := range books {
-		m.Add(context.TODO(), b)
-	}
-	return m, nil
-}
 
 // All finds all books
-func (m *mockStore) All(_ context.Context, limit int64) ([]booklibrary.Book, error) {
-	all := []booklibrary.Book{}
-	for _, b := range m.items {
-		all = append(all, b)
-	}
-	last := int64(len(all))
-	if limit < last {
-		last = limit
-	}
-	return all[:last], nil
+func (m *MockStore) All(ctx context.Context, limit int) ([]booklibrary.Book, error) {
+	return m.AllFn(ctx, limit)
 }
 
 // Book finds a specific book
-func (m *mockStore) Book(_ context.Context, id string) (booklibrary.Book, error) {
-	b, ok := m.items[id]
-	if !ok {
-		return booklibrary.Book{}, booklibrary.ErrNotFound
-	}
-	return b, nil
+func (m *MockStore) Book(ctx context.Context, id string) (booklibrary.Book, error) {
+	return m.BookFn(ctx, id)
 }
 
 // Add ads a new Book
-func (m *mockStore) Add(ctx context.Context, book booklibrary.Book) (booklibrary.Book, error) {
-	if book.ID == primitive.NilObjectID {
-		book.ID = primitive.NewObjectID()
-	}
-	return m.insert(ctx, book)
+func (m *MockStore) Add(ctx context.Context, book booklibrary.Book) (booklibrary.Book, error) {
+	return m.AddFn(ctx, book)
 }
 
 // Update updates an existing Book
-func (m *mockStore) Update(_ context.Context, id string, book booklibrary.Book) (booklibrary.Book, error) {
-	if _, ok := m.items[id]; !ok {
-		return booklibrary.Book{}, booklibrary.ErrNotFound
-	}
-	m.items[id] = book
-	return book, nil
+func (m *MockStore) Update(ctx context.Context, id string, book booklibrary.Book) (booklibrary.Book, error) {
+	return m.UpdateFn(ctx, id, book)
 }
 
-// Remove removes a Book
-func (m *mockStore) Remove(_ context.Context, id string) (booklibrary.Book, error) {
-	book, ok := m.items[id]
-	if !ok {
-		return booklibrary.Book{}, booklibrary.ErrNotFound
-	}
-	delete(m.items, id)
-	return book, nil
-}
-
-func (m *mockStore) insert(_ context.Context, book booklibrary.Book) (booklibrary.Book, error) {
-	id := book.ID.Hex()
-	m.items[id] = book
-	return book, nil
+func (m *MockStore) Remove(ctx context.Context, id string) (booklibrary.Book, error) {
+	return m.RemoveFn(ctx, id)
 }
 
 // SampleData generates a sample Book objects for testing
-func SampleData() []booklibrary.Book {
-	id1, _ := primitive.ObjectIDFromHex("000000000000000000000001")
-	id2, _ := primitive.ObjectIDFromHex("000000000000000000000002")
-	id3, _ := primitive.ObjectIDFromHex("000000000000000000000003")
-	bb := []booklibrary.Book{
-		{
-			ID:          id1,
-			Author:      "Jörg Jooss",
-			Title:       "Go in 24 Minutes",
-			ReleaseDate: time.Date(2019, 5, 1, 0, 0, 0, 0, time.UTC),
-			Keywords:    []booklibrary.Keyword{{Value: "Go"}},
-		},
-		{
-			ID:          id2,
-			Author:      "Jonah Jooss",
-			Title:       "Dragons Unleashed",
-			ReleaseDate: time.Date(2021, 11, 15, 0, 0, 0, 0, time.UTC),
-			Keywords:    []booklibrary.Keyword{{Value: "Dragons"}, {Value: "Toys"}},
-		},
-		{
-			ID:          id3,
-			Author:      "Paul Jooss",
-			Title:       "Professional BattleTech",
-			ReleaseDate: time.Date(2022, 7, 30, 0, 0, 0, 0, time.UTC),
-			Keywords:    []booklibrary.Keyword{{Value: "SciFi"}, {Value: "Boardgames"}},
-		}}
-	return bb
+func SampleData(count int) map[string]booklibrary.Book {
+	m := make(map[string]booklibrary.Book, count)
+	for i := 0; i < count; i++ {
+		id := primitive.NewObjectID()
+		m[id.Hex()] = booklibrary.Book{
+			ID:          id,
+			Author:      "John Doe",
+			Title:       fmt.Sprintf("Unit Testing, Volume %d", i),
+			ReleaseDate: time.Now(),
+			Keywords:    []booklibrary.Keyword{{Value: "Go"}, {Value: "Test"}},
+		}
+	}
+	return m
 }

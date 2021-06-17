@@ -46,7 +46,7 @@ func (a *APIHandler) allBooks() http.HandlerFunc {
 		}
 		log.Printf("Limiting: result to %d entries\n", limit)
 
-		all, err := a.store.All(r.Context(), int64(limit))
+		all, err := a.store.All(r.Context(), limit)
 		if err != nil {
 			log.Printf("Database error: %v\n", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)

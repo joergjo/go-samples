@@ -9,3 +9,5 @@ README.md
 Dockerfile
 main
 *.exe
+booklibrary
+docker-compose*.yml

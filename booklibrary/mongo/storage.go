@@ -21,7 +21,7 @@ type mongoCollectionStore struct {
 
 var (
 	// Compile-time check to verify we implement Storage
-	_       booklibrary.Storage = &mongoCollectionStore{}
+	_       booklibrary.Storage = (*mongoCollectionStore)(nil)
 	timeout                     = 2 * time.Second
 )
 
@@ -60,7 +60,7 @@ func NewStorage(mongoURI, database, collection string) (booklibrary.Storage, err
 }
 
 // All returns all books up to 'limit' instances.
-func (m *mongoCollectionStore) All(parent context.Context, limit int64) ([]booklibrary.Book, error) {
+func (m *mongoCollectionStore) All(parent context.Context, limit int) ([]booklibrary.Book, error) {
 	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
 	books, err := m.find(ctx, bson.M{}, limit)
@@ -171,11 +171,11 @@ func (m *mongoCollectionStore) Remove(parent context.Context, id string) (bookli
 	return b, nil
 }
 
-func (m *mongoCollectionStore) find(parent context.Context, filter primitive.M, limit int64) ([]booklibrary.Book, error) {
+func (m *mongoCollectionStore) find(parent context.Context, filter primitive.M, limit int) ([]booklibrary.Book, error) {
 	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
 
-	findOptions := options.Find().SetLimit(limit)
+	findOptions := options.Find().SetLimit(int64(limit))
 	cur, err := m.collection.Find(ctx, filter, findOptions)
 	if err != nil {
 		log.Printf("Finding document(s) failed: %s\n", err)
