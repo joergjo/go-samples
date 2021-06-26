@@ -33,7 +33,7 @@ func NewStorage(mongoURI, database, collection string) (booklibrary.Storage, err
 	// Set client options
 	clientOptions := options.Client().ApplyURI(mongoURI)
 	if err := clientOptions.Validate(); err != nil {
-		log.Printf("Validating clientOptions failed: %+v\n", clientOptions)
+		log.Printf("Validating client options failed: %+v\n", clientOptions)
 		return nil, err
 	}
 
@@ -60,8 +60,8 @@ func NewStorage(mongoURI, database, collection string) (booklibrary.Storage, err
 }
 
 // All returns all books up to 'limit' instances.
-func (m *mongoCollectionStore) All(parent context.Context, limit int) ([]booklibrary.Book, error) {
-	ctx, cancel := context.WithTimeout(parent, timeout)
+func (m *mongoCollectionStore) All(ctx context.Context, limit int) ([]booklibrary.Book, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	books, err := m.find(ctx, bson.M{}, limit)
 	if err != nil {
@@ -71,8 +71,8 @@ func (m *mongoCollectionStore) All(parent context.Context, limit int) ([]booklib
 }
 
 // Book finds a book by its ID.
-func (m *mongoCollectionStore) Book(parent context.Context, id string) (booklibrary.Book, error) {
-	ctx, cancel := context.WithTimeout(parent, timeout)
+func (m *mongoCollectionStore) Book(ctx context.Context, id string) (booklibrary.Book, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -92,8 +92,8 @@ func (m *mongoCollectionStore) Book(parent context.Context, id string) (booklibr
 }
 
 // Add adds a new book
-func (m *mongoCollectionStore) Add(parent context.Context, book booklibrary.Book) (booklibrary.Book, error) {
-	ctx, cancel := context.WithTimeout(parent, timeout)
+func (m *mongoCollectionStore) Add(ctx context.Context, book booklibrary.Book) (booklibrary.Book, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	res, err := m.collection.InsertOne(ctx, book)
@@ -106,14 +106,14 @@ func (m *mongoCollectionStore) Add(parent context.Context, book booklibrary.Book
 }
 
 // Update a book for specific ID
-func (m *mongoCollectionStore) Update(parent context.Context, id string, book booklibrary.Book) (booklibrary.Book, error) {
+func (m *mongoCollectionStore) Update(ctx context.Context, id string, book booklibrary.Book) (booklibrary.Book, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		log.Printf("Parsing ObjectID %s failed: %s\n", id, err)
 		return booklibrary.Book{}, booklibrary.ErrInvalidID
 	}
 
-	ctx, cancel := context.WithTimeout(parent, timeout)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	options := options.FindOneAndUpdate().SetReturnDocument(options.After)
@@ -142,14 +142,14 @@ func (m *mongoCollectionStore) Update(parent context.Context, id string, book bo
 }
 
 // Remove deletes a book from the database
-func (m *mongoCollectionStore) Remove(parent context.Context, id string) (booklibrary.Book, error) {
+func (m *mongoCollectionStore) Remove(ctx context.Context, id string) (booklibrary.Book, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		log.Printf("Parsing ObjectID %s failed: %s\n", id, err)
 		return booklibrary.Book{}, booklibrary.ErrInvalidID
 	}
 
-	ctx, cancel := context.WithTimeout(parent, timeout)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	filter := bson.M{"_id": oid}
@@ -171,8 +171,8 @@ func (m *mongoCollectionStore) Remove(parent context.Context, id string) (bookli
 	return b, nil
 }
 
-func (m *mongoCollectionStore) find(parent context.Context, filter primitive.M, limit int) ([]booklibrary.Book, error) {
-	ctx, cancel := context.WithTimeout(parent, timeout)
+func (m *mongoCollectionStore) find(ctx context.Context, filter primitive.M, limit int) ([]booklibrary.Book, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	findOptions := options.Find().SetLimit(int64(limit))
