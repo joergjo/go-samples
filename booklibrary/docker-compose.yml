@@ -1,4 +1,4 @@
-version: "3.8"
+version: "3.9"
 
 volumes:
   mongodata:
@@ -12,6 +12,7 @@ services:
       - mongodata:/data/db
 
   booklibrary_api:
+    profiles: ["all"]
     image: booklibrary-go:${TAG:-latest}
     build:
       context: .
@@ -20,5 +21,3 @@ services:
       - "5000:5000"
     environment:
       - BOOKLIBRARY_MONGOURI=mongodb://booklibrary_db:27017
-    depends_on:
-      - booklibrary_db

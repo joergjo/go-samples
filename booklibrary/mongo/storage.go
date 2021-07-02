@@ -21,24 +21,25 @@ type mongoCollectionStore struct {
 
 var (
 	// Compile-time check to verify we implement Storage
-	_       booklibrary.Storage = (*mongoCollectionStore)(nil)
-	timeout                     = 2 * time.Second
+	_              booklibrary.Storage = (*mongoCollectionStore)(nil)
+	timeout                            = 2 * time.Second
+	startupTimeout                     = 10 * time.Second
 )
 
 // NewStorage creates a new Storage backed by MongoDB
 func NewStorage(mongoURI, database, collection string) (booklibrary.Storage, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), startupTimeout)
 	defer cancel()
 
 	// Set client options
-	clientOptions := options.Client().ApplyURI(mongoURI)
-	if err := clientOptions.Validate(); err != nil {
-		log.Printf("Validating client options failed: %+v\n", clientOptions)
+	opts := options.Client().ApplyURI(mongoURI)
+	if err := opts.Validate(); err != nil {
+		log.Printf("Validating client options failed: %+v\n", opts)
 		return nil, err
 	}
 
 	// Connect to MongoDB
-	client, err := mongo.Connect(ctx, clientOptions)
+	client, err := mongo.Connect(ctx, opts)
 	if err != nil {
 		log.Printf("Connecting to MongoDB failed: %s\n", err)
 		return nil, err
