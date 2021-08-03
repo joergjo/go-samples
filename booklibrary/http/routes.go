@@ -61,7 +61,7 @@ func (a *APIHandler) getBook() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		v := mux.Vars(r)
 		id := v["id"]
-		book, err := a.store.Book(r.Context(), id)
+		book, err := a.store.Get(r.Context(), id)
 		if err != nil {
 			if errors.Is(err, booklibrary.ErrInvalidID) {
 				log.Printf("Client provided invalid ID for document: %s\n", id)

@@ -77,7 +77,7 @@ func config() {
 	flag.Parse()
 }
 
-func newStorage() (booklibrary.Storage, error) {
+func newStorage() (booklibrary.Store, error) {
 	log.Printf("Connecting to MongoDB at %q.\n", appConfig.mongoURI)
 	s, err := mongo.NewStorage(appConfig.mongoURI, appConfig.db, appConfig.collection)
 	if err != nil {
@@ -87,7 +87,7 @@ func newStorage() (booklibrary.Storage, error) {
 	return s, nil
 }
 
-func newServer(store booklibrary.Storage) *http.Server {
+func newServer(store booklibrary.Store) *http.Server {
 	return &http.Server{
 		Addr:         fmt.Sprintf(":%d", appConfig.port),
 		ReadTimeout:  5 * time.Second,

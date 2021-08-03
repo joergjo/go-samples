@@ -11,13 +11,13 @@ import (
 // APIHandler represents a runnable HTTP application server
 type APIHandler struct {
 	*mux.Router
-	store booklibrary.Storage
+	store booklibrary.Store
 }
 
 var _ http.Handler = (*APIHandler)(nil)
 
 // NewAPIHandler creates a new Server and injects a Storage implementation
-func NewAPIHandler(store booklibrary.Storage) *APIHandler {
+func NewAPIHandler(store booklibrary.Store) *APIHandler {
 	api := &APIHandler{
 		Router: mux.NewRouter(),
 		store:  store,

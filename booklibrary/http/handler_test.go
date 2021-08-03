@@ -101,7 +101,7 @@ func TestGetBookByID(t *testing.T) {
 			b := booklibrary.Book{
 				ID: id,
 			}
-			store.BookFn = func(_ context.Context, id string) (booklibrary.Book, error) {
+			store.GetFn = func(_ context.Context, id string) (booklibrary.Book, error) {
 				if id != string(b.ID.Hex()) {
 					return booklibrary.Book{}, booklibrary.ErrNotFound
 				}

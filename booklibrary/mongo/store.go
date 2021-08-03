@@ -12,8 +12,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// mongoCollectionStore stores Book instances in a MongoDB collection.
-type mongoCollectionStore struct {
+// MongoCollectionStore stores Book instances in a MongoDB collection.
+type MongoCollectionStore struct {
 	client     *mongo.Client
 	database   *mongo.Database
 	collection *mongo.Collection
@@ -21,13 +21,13 @@ type mongoCollectionStore struct {
 
 var (
 	// Compile-time check to verify we implement Storage
-	_              booklibrary.Storage = (*mongoCollectionStore)(nil)
-	timeout                            = 2 * time.Second
-	startupTimeout                     = 10 * time.Second
+	_              booklibrary.Store = (*MongoCollectionStore)(nil)
+	timeout                          = 2 * time.Second
+	startupTimeout                   = 10 * time.Second
 )
 
 // NewStorage creates a new Storage backed by MongoDB
-func NewStorage(mongoURI, database, collection string) (booklibrary.Storage, error) {
+func NewStorage(mongoURI, database, collection string) (*MongoCollectionStore, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), startupTimeout)
 	defer cancel()
 
@@ -52,7 +52,7 @@ func NewStorage(mongoURI, database, collection string) (booklibrary.Storage, err
 
 	db := client.Database(database)
 	coll := db.Collection(collection)
-	store := &mongoCollectionStore{
+	store := &MongoCollectionStore{
 		client:     client,
 		database:   db,
 		collection: coll,
@@ -61,7 +61,7 @@ func NewStorage(mongoURI, database, collection string) (booklibrary.Storage, err
 }
 
 // All returns all books up to 'limit' instances.
-func (m *mongoCollectionStore) All(ctx context.Context, limit int) ([]booklibrary.Book, error) {
+func (m *MongoCollectionStore) All(ctx context.Context, limit int) ([]booklibrary.Book, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	books, err := m.find(ctx, bson.M{}, limit)
@@ -72,7 +72,7 @@ func (m *mongoCollectionStore) All(ctx context.Context, limit int) ([]booklibrar
 }
 
 // Book finds a book by its ID.
-func (m *mongoCollectionStore) Book(ctx context.Context, id string) (booklibrary.Book, error) {
+func (m *MongoCollectionStore) Get(ctx context.Context, id string) (booklibrary.Book, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	oid, err := primitive.ObjectIDFromHex(id)
@@ -93,7 +93,7 @@ func (m *mongoCollectionStore) Book(ctx context.Context, id string) (booklibrary
 }
 
 // Add adds a new book
-func (m *mongoCollectionStore) Add(ctx context.Context, book booklibrary.Book) (booklibrary.Book, error) {
+func (m *MongoCollectionStore) Add(ctx context.Context, book booklibrary.Book) (booklibrary.Book, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
@@ -107,7 +107,7 @@ func (m *mongoCollectionStore) Add(ctx context.Context, book booklibrary.Book) (
 }
 
 // Update a book for specific ID
-func (m *mongoCollectionStore) Update(ctx context.Context, id string, book booklibrary.Book) (booklibrary.Book, error) {
+func (m *MongoCollectionStore) Update(ctx context.Context, id string, book booklibrary.Book) (booklibrary.Book, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		log.Printf("Parsing ObjectID %s failed: %s\n", id, err)
@@ -143,7 +143,7 @@ func (m *mongoCollectionStore) Update(ctx context.Context, id string, book bookl
 }
 
 // Remove deletes a book from the database
-func (m *mongoCollectionStore) Remove(ctx context.Context, id string) (booklibrary.Book, error) {
+func (m *MongoCollectionStore) Remove(ctx context.Context, id string) (booklibrary.Book, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		log.Printf("Parsing ObjectID %s failed: %s\n", id, err)
@@ -172,7 +172,7 @@ func (m *mongoCollectionStore) Remove(ctx context.Context, id string) (booklibra
 	return b, nil
 }
 
-func (m *mongoCollectionStore) find(ctx context.Context, filter primitive.M, limit int) ([]booklibrary.Book, error) {
+func (m *MongoCollectionStore) find(ctx context.Context, filter primitive.M, limit int) ([]booklibrary.Book, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 

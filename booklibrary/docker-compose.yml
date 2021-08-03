@@ -5,7 +5,7 @@ volumes:
 
 services:
   booklibrary_db:
-    image: mongo:${MONGO_TAG:-4.4}
+    image: mongo:${MONGO_TAG:-5.0}
     ports:
       - "27017:27017"
     volumes:

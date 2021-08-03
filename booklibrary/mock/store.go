@@ -12,14 +12,14 @@ import (
 // mockStore abstracts the data access from the underlying data store
 type MockStore struct {
 	AllFn    func(ctx context.Context, limit int) ([]booklibrary.Book, error)
-	BookFn   func(ctx context.Context, id string) (booklibrary.Book, error)
+	GetFn    func(ctx context.Context, id string) (booklibrary.Book, error)
 	AddFn    func(ctx context.Context, book booklibrary.Book) (booklibrary.Book, error)
 	UpdateFn func(ctx context.Context, id string, book booklibrary.Book) (booklibrary.Book, error)
 	RemoveFn func(ctx context.Context, id string) (booklibrary.Book, error)
 }
 
 // Compile-time check to verify we implement Storage
-var _ booklibrary.Storage = (*MockStore)(nil)
+var _ booklibrary.Store = (*MockStore)(nil)
 
 // NewStorage creates a new Storage instance
 
@@ -29,8 +29,8 @@ func (m *MockStore) All(ctx context.Context, limit int) ([]booklibrary.Book, err
 }
 
 // Book finds a specific book
-func (m *MockStore) Book(ctx context.Context, id string) (booklibrary.Book, error) {
-	return m.BookFn(ctx, id)
+func (m *MockStore) Get(ctx context.Context, id string) (booklibrary.Book, error) {
+	return m.GetFn(ctx, id)
 }
 
 // Add ads a new Book
