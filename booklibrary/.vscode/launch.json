@@ -9,7 +9,13 @@
             "type": "go",
             "request": "launch",
             "mode": "exec",
-            "program": "${workspaceFolder}/${workspaceFolderBasename}.exe",
+            "program": "${workspaceFolder}/${workspaceFolderBasename}",
+            "windows": {
+                "name": "Launch executable",
+                "type": "go",
+                "request": "launch",
+                "program": "${workspaceFolder}/${workspaceFolderBasename}.exe",
+            },
             "env": {
                 "BOOKLIBRARY_MONGOURI": "mongodb://localhost"
             },
