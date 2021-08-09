@@ -48,36 +48,28 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("Fatal error shutting down server: %v\n", err)
+		log.Printf("Error shutting down server: %v\n", err)
+	}
+	if err := store.Close(ctx); err != nil {
+		log.Printf("Error disconnecting from database: %v\n", err)
 	}
 	log.Println("Server has shut down")
 }
 
 func config() {
-	mongoURI := os.Getenv("BOOKLIBRARY_MONGOURI")
-	if mongoURI == "" {
-		mongoURI = "mongodb://localhost"
-	}
-	port, err := strconv.Atoi(os.Getenv(("BOOKLIBRARY_PORT")))
-	if err != nil {
-		port = 5000
-	}
-	db := os.Getenv("BOOKLIBRARY_DB")
-	if db == "" {
-		db = "library_database"
-	}
-	coll := os.Getenv("BOOKLIBRARY_COLLECTION")
-	if coll == "" {
-		coll = "books"
-	}
-	flag.IntVar(&(appConfig.port), "port", port, "Port number to listen on")
+	mongoURI := getEnvString("BOOKLIBRARY_MONGOURI", "mongodb://localhost")
+	port := getEnvInt("BOOKLIBRARY_PORT", 5000)
+	db := getEnvString("BOOKLIBRARY_DB", "library_database")
+	coll := getEnvString("BOOKLIBRARY_COLLECTION", "books")
+
+	flag.IntVar(&(appConfig.port), "port", port, "HTTP port to listen on")
 	flag.StringVar(&(appConfig.mongoURI), "mongoURI", mongoURI, "MongoDB URI to connect to")
-	flag.StringVar(&(appConfig.db), "db", db, "Name of MongoDB database")
-	flag.StringVar(&(appConfig.collection), "collection", coll, "Name of MongoDB collection")
+	flag.StringVar(&(appConfig.db), "db", db, "MongoDB database")
+	flag.StringVar(&(appConfig.collection), "collection", coll, "MongoDB collection")
 	flag.Parse()
 }
 
-func newStorage() (booklibrary.Store, error) {
+func newStorage() (*mongo.MongoCollectionStore, error) {
 	log.Printf("Connecting to MongoDB at %q.\n", appConfig.mongoURI)
 	s, err := mongo.NewStorage(appConfig.mongoURI, appConfig.db, appConfig.collection)
 	if err != nil {
@@ -95,4 +87,25 @@ func newServer(store booklibrary.Store) *http.Server {
 		IdleTimeout:  120 * time.Second,
 		Handler:      api.NewAPIHandler(store),
 	}
+}
+
+func getEnvString(name, value string) string {
+	env := os.Getenv(name)
+	if env == "" {
+		env = value
+	}
+	return env
+}
+
+func getEnvInt(name string, value int) int {
+	envStr := os.Getenv(name)
+	if envStr == "" {
+		return value
+	}
+	env, err := strconv.Atoi(envStr)
+	if err != nil {
+		log.Printf("Error parsing value %q from %q as int, using default %d: %v\n", envStr, name, value, err)
+		return value
+	}
+	return env
 }

@@ -204,3 +204,7 @@ func (m *MongoCollectionStore) find(ctx context.Context, filter primitive.M, lim
 	}
 	return books, nil
 }
+
+func (m *MongoCollectionStore) Close(ctx context.Context) error {
+	return m.client.Disconnect(ctx)
+}
