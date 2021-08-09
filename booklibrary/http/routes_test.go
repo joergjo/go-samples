@@ -1,4 +1,4 @@
-package http
+package http_test
 
 import (
 	"bytes"
@@ -8,32 +8,84 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"sort"
-	"strings"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/joergjo/go-samples/booklibrary"
-	"github.com/joergjo/go-samples/booklibrary/mock"
+	api "github.com/joergjo/go-samples/booklibrary/http"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-var allBooksTest = []struct {
-	name  string
-	in    map[string]booklibrary.Book
-	limit int
-	want  int
-}{
-	{"get_multiple_books", mock.SampleData(5), -1, 5},
-	{"get_first_book", mock.SampleData(5), 1, 1},
-	{"get_multiple_books_with_limit", mock.SampleData(10), 50, 10},
-	{"get_empty_collection", make(map[string]booklibrary.Book), -1, 0},
+const applicationJSON = "application/json"
+
+type storeStub struct {
+	AllFn    func(ctx context.Context, limit int) ([]booklibrary.Book, error)
+	GetFn    func(ctx context.Context, id string) (booklibrary.Book, error)
+	AddFn    func(ctx context.Context, book booklibrary.Book) (booklibrary.Book, error)
+	UpdateFn func(ctx context.Context, id string, book booklibrary.Book) (booklibrary.Book, error)
+	RemoveFn func(ctx context.Context, id string) (booklibrary.Book, error)
+}
+
+// Compile-time check to verify we implement Storage
+var _ booklibrary.Store = (*storeStub)(nil)
+
+// NewStorage creates a new Storage instance
+
+// All finds all books
+func (m *storeStub) All(ctx context.Context, limit int) ([]booklibrary.Book, error) {
+	return m.AllFn(ctx, limit)
+}
+
+// Book finds a specific book
+func (m *storeStub) Get(ctx context.Context, id string) (booklibrary.Book, error) {
+	return m.GetFn(ctx, id)
+}
+
+// Add ads a new Book
+func (m *storeStub) Add(ctx context.Context, book booklibrary.Book) (booklibrary.Book, error) {
+	return m.AddFn(ctx, book)
+}
+
+// Update updates an existing Book
+func (m *storeStub) Update(ctx context.Context, id string, book booklibrary.Book) (booklibrary.Book, error) {
+	return m.UpdateFn(ctx, id, book)
+}
+
+func (m *storeStub) Remove(ctx context.Context, id string) (booklibrary.Book, error) {
+	return m.RemoveFn(ctx, id)
+}
+
+func testData(count int) map[string]booklibrary.Book {
+	m := make(map[string]booklibrary.Book, count)
+	for i := 0; i < count; i++ {
+		id := primitive.NewObjectID()
+		m[id.Hex()] = booklibrary.Book{
+			ID:          id,
+			Author:      "John Doe",
+			Title:       fmt.Sprintf("Unit Testing, Volume %d", i),
+			ReleaseDate: time.Now(),
+			Keywords:    []booklibrary.Keyword{{Value: "Go"}, {Value: "Test"}},
+		}
+	}
+	return m
 }
 
 func TestGetAllBooks(t *testing.T) {
-	for _, tt := range allBooksTest {
+	tests := []struct {
+		name  string
+		in    map[string]booklibrary.Book
+		limit int
+		want  int
+	}{
+		{"get_multiple_books", testData(5), -1, 5},
+		{"get_first_book", testData(5), 1, 1},
+		{"get_multiple_books_with_limit", testData(10), 50, 10},
+		{"get_empty_collection", make(map[string]booklibrary.Book), -1, 0},
+	}
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := &mock.MockStore{}
+			store := &storeStub{}
 			store.AllFn = func(_ context.Context, _ int) ([]booklibrary.Book, error) {
 				i := 0
 				bb := make([]booklibrary.Book, tt.want)
@@ -46,7 +98,7 @@ func TestGetAllBooks(t *testing.T) {
 				}
 				return bb, nil
 			}
-			api := NewAPIHandler(store)
+			api := api.NewAPIHandler(store)
 			path := "/api/books"
 			if tt.limit != -1 {
 				path = fmt.Sprintf("%s?limit=%d", path, tt.limit)
@@ -81,19 +133,18 @@ func TestGetAllBooks(t *testing.T) {
 	}
 }
 
-var getBookTests = []struct {
-	name string
-	in   string
-	want int
-}{
-	{"get_by_id", "000000000000000000000001", 200},
-	{"get_unknown_id", "000000000000000000000004", 404},
-}
-
 func TestGetBookByID(t *testing.T) {
-	for _, tt := range getBookTests {
+	tests := []struct {
+		name string
+		in   string
+		want int
+	}{
+		{"get_by_id", "000000000000000000000001", 200},
+		{"get_unknown_id", "000000000000000000000004", 404},
+	}
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := &mock.MockStore{}
+			store := &storeStub{}
 			id, err := primitive.ObjectIDFromHex("000000000000000000000001")
 			if err != nil {
 				t.Fatalf("Error creating ObjectID")
@@ -108,7 +159,7 @@ func TestGetBookByID(t *testing.T) {
 				return b, nil
 			}
 
-			api := NewAPIHandler(store)
+			api := api.NewAPIHandler(store)
 			r := httptest.NewRequest(http.MethodGet, "/api/books/"+tt.in, nil)
 			w := httptest.NewRecorder()
 			api.ServeHTTP(w, r)
@@ -142,19 +193,18 @@ func TestGetBookByID(t *testing.T) {
 	}
 }
 
-var deleteBookTests = []struct {
-	name string
-	in   string
-	want int
-}{
-	{"delete_by_id", "000000000000000000000001", 204},
-	{"delete_unknown_id", "000000000000000000000004", 404},
-}
-
 func TestDeleteBook(t *testing.T) {
-	for _, tt := range deleteBookTests {
+	tests := []struct {
+		name string
+		in   string
+		want int
+	}{
+		{"delete_by_id", "000000000000000000000001", 204},
+		{"delete_unknown_id", "000000000000000000000004", 404},
+	}
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := &mock.MockStore{}
+			store := &storeStub{}
 			id, err := primitive.ObjectIDFromHex("000000000000000000000001")
 			if err != nil {
 				t.Fatalf("Error creating ObjectID")
@@ -169,7 +219,7 @@ func TestDeleteBook(t *testing.T) {
 				return b, nil
 			}
 
-			api := NewAPIHandler(store)
+			api := api.NewAPIHandler(store)
 			r := httptest.NewRequest(http.MethodDelete, "/api/books/"+tt.in, nil)
 			w := httptest.NewRecorder()
 			api.ServeHTTP(w, r)
@@ -182,13 +232,13 @@ func TestDeleteBook(t *testing.T) {
 }
 
 func TestAddBook(t *testing.T) {
-	store := &mock.MockStore{}
+	store := &storeStub{}
 	store.AddFn = func(_ context.Context, book booklibrary.Book) (booklibrary.Book, error) {
 		book.ID = primitive.NewObjectID()
 		return book, nil
 	}
 
-	api := NewAPIHandler(store)
+	api := api.NewAPIHandler(store)
 	book := &booklibrary.Book{
 		Author:      "Jörg Jooss",
 		Title:       "Go Testing in Action",
@@ -234,19 +284,18 @@ func TestAddBook(t *testing.T) {
 	}
 }
 
-var updateBookTests = []struct {
-	name string
-	in   string
-	want int
-}{
-	{"update_by_id", "000000000000000000000003", 200},
-	{"update_invalid_id", "000000000000000000000004", 404},
-}
-
 func TestUpdateBook(t *testing.T) {
-	for _, tt := range updateBookTests {
+	tests := []struct {
+		name string
+		in   string
+		want int
+	}{
+		{"update_by_id", "000000000000000000000003", 200},
+		{"update_invalid_id", "000000000000000000000004", 404},
+	}
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := &mock.MockStore{}
+			store := &storeStub{}
 			store.UpdateFn = func(_ context.Context, id string, book booklibrary.Book) (booklibrary.Book, error) {
 				if id != "000000000000000000000003" {
 					return booklibrary.Book{}, booklibrary.ErrNotFound
@@ -271,7 +320,7 @@ func TestUpdateBook(t *testing.T) {
 				t.Fatalf("Error marshaling Book: %v.", err)
 			}
 
-			api := NewAPIHandler(store)
+			api := api.NewAPIHandler(store)
 			r := httptest.NewRequest(http.MethodPut, "/api/books/"+book.ID.Hex(), bytes.NewBuffer(body))
 			w := httptest.NewRecorder()
 			api.ServeHTTP(w, r)
@@ -299,37 +348,10 @@ func TestUpdateBook(t *testing.T) {
 			if err := json.Unmarshal(body, got); err != nil {
 				t.Fatalf("Error unmarshaling JSON response: %v", err)
 			}
-
-			if got.ID != book.ID {
-				t.Fatalf("Updated book has wrong ID, got %q, want %q", got.ID, book.ID)
-			}
-			if got.Author != book.Author {
-				t.Fatalf("Updated book has wrong author, got %q, want %q", got.Author, book.Author)
-			}
-			if got.Title != book.Title {
-				t.Fatalf("Updated book has wrong title, got %q, want %q", got.Title, book.Title)
-			}
-			if got.ReleaseDate.UTC() != book.ReleaseDate.UTC() {
-				t.Fatalf("Updated book has wrong release date, got %v, want %v", got.ReleaseDate.UTC(), book.ReleaseDate.UTC())
-			}
-
-			gotKW := []string{}
-			for _, kw := range got.Keywords {
-				gotKW = append(gotKW, kw.Value)
-			}
-			sort.Strings(gotKW)
-
-			wantKW := []string{}
-			for _, kw := range got.Keywords {
-				wantKW = append(wantKW, kw.Value)
-			}
-			sort.Strings(wantKW)
-
-			gotStr := strings.Join(gotKW, " ")
-			wantStr := strings.Join(wantKW, " ")
-
-			if gotStr != wantStr {
-				t.Fatalf("Updated book has wrong set of keywords, got %q, want %q", gotStr, wantStr)
+			// cmp.Diff() considers value and pointer types to be different,
+			// so we pass a pointer to the expected value
+			if diff := cmp.Diff(&book, got); diff != "" {
+				t.Fatal(diff)
 			}
 		})
 	}
