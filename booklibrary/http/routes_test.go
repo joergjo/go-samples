@@ -187,7 +187,7 @@ func TestGetBookByID(t *testing.T) {
 			}
 
 			if book.ID != want {
-				t.Fatalf("Received unexected Book, got %q, want %q", book.ID, want)
+				t.Fatalf("Received unexpected Book, got %q, want %q", book.ID, want)
 			}
 		})
 	}
