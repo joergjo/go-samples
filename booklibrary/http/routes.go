@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/gorilla/mux"
@@ -19,22 +18,12 @@ import (
 const applicationJSON = "application/json"
 
 func (a *APIHandler) routes() {
-	a.Handle("/api/books", handlerFor(a.allBooks(), "allBooks")).Methods(http.MethodGet)
-	a.Handle("/api/books/{id}", handlerFor(a.getBook(), "getBook")).Methods(http.MethodGet)
-	a.Handle("/api/books", handlerFor(a.addBook(), "addBook")).Methods(http.MethodPost)
-	a.Handle("/api/books/{id}", handlerFor(a.updateBook(), "updateBook")).Methods(http.MethodPut)
-	a.Handle("/api/books/{id}", handlerFor(a.deleteBook(), "deleteBook")).Methods(http.MethodDelete)
+	a.Handle("/api/books", instrument(a.allBooks(), "allBooks")).Methods(http.MethodGet)
+	a.Handle("/api/books/{id}", instrument(a.getBook(), "getBook")).Methods(http.MethodGet)
+	a.Handle("/api/books", instrument(a.addBook(), "addBook")).Methods(http.MethodPost)
+	a.Handle("/api/books/{id}", instrument(a.updateBook(), "updateBook")).Methods(http.MethodPut)
+	a.Handle("/api/books/{id}", instrument(a.deleteBook(), "deleteBook")).Methods(http.MethodDelete)
 	a.Handle("/metrics", promhttp.Handler())
-}
-
-func handlerFor(handlerFunc http.HandlerFunc, handlerName string) http.Handler {
-	return promhttp.InstrumentHandlerInFlight(inFlightGauge,
-		promhttp.InstrumentHandlerDuration(duration.MustCurryWith(prometheus.Labels{"handler": handlerName}),
-			promhttp.InstrumentHandlerCounter(counter,
-				promhttp.InstrumentHandlerResponseSize(responseSize, handlerFunc),
-			),
-		),
-	)
 }
 
 func (a *APIHandler) allBooks() http.HandlerFunc {
