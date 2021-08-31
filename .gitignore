@@ -24,3 +24,6 @@
 **/debug
 __debug_bin
 .env
+
+# macOS Finder
+.DS_Store
