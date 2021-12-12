@@ -90,16 +90,16 @@ func newServer(store booklibrary.Store) *http.Server {
 }
 
 func getEnvString(name, value string) string {
-	env := os.Getenv(name)
-	if env == "" {
-		env = value
+	env, ok := os.LookupEnv(name)
+	if !ok {
+		return value
 	}
 	return env
 }
 
 func getEnvInt(name string, value int) int {
-	envStr := os.Getenv(name)
-	if envStr == "" {
+	envStr, ok := os.LookupEnv(name)
+	if !ok {
 		return value
 	}
 	env, err := strconv.Atoi(envStr)
