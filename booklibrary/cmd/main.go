@@ -45,11 +45,11 @@ func main() {
 		srvClosed <- struct{}{}
 	}()
 
-	shutdown := func(srvClosed bool) {
+	shutdown := func(waitForSrv bool) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		log.Printf("Shutting down...\n")
-		if !srvClosed {
+		if waitForSrv {
 			if err := srv.Shutdown(ctx); err != nil {
 				log.Printf("Error shutting down server: %v\n", err)
 			}
@@ -62,9 +62,9 @@ func main() {
 
 	select {
 	case <-srvClosed:
-		shutdown(true)
-	case <-ctx.Done():
 		shutdown(false)
+	case <-ctx.Done():
+		shutdown(true)
 	}
 
 	log.Println("Server has shut down")
