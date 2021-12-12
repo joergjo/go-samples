@@ -200,7 +200,7 @@ func (m *MongoCollectionStore) find(ctx context.Context, filter primitive.M, lim
 
 	if err := cur.Err(); err != nil {
 		log.Printf("Iterating over cursor failed: %s\n", err)
-		return books, err
+		return nil, err
 	}
 	return books, nil
 }
