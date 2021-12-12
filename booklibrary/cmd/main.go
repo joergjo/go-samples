@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/joergjo/go-samples/booklibrary"
@@ -34,25 +35,38 @@ func main() {
 	}
 	srv := newServer(store)
 
+	srvClosed := make(chan struct{}, 1)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	go func() {
 		log.Printf("Server starting, listening on 0.0.0.0:%d...\n", appConfig.port)
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-			log.Fatalf("Fatal error in ListenAndServe(): %v\n", err)
+			log.Printf("Error in ListenAndServe(): %v\n", err)
 		}
+		srvClosed <- struct{}{}
 	}()
 
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt)
-	<-stop
+	shutdown := func(srvClosed bool) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		log.Printf("Shutting down...\n")
+		if !srvClosed {
+			if err := srv.Shutdown(ctx); err != nil {
+				log.Printf("Error shutting down server: %v\n", err)
+			}
+		}
+		if err := store.Close(ctx); err != nil {
+			log.Printf("Error disconnecting from database: %v\n", err)
+		}
+		stop()
+	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Printf("Error shutting down server: %v\n", err)
+	select {
+	case <-srvClosed:
+		shutdown(true)
+	case <-ctx.Done():
+		shutdown(false)
 	}
-	if err := store.Close(ctx); err != nil {
-		log.Printf("Error disconnecting from database: %v\n", err)
-	}
+
 	log.Println("Server has shut down")
 }
 
