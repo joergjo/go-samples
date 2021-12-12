@@ -7,6 +7,7 @@ services:
   booklibrary_db:
     image: mongo:${MONGO_TAG:-5.0}
     ports:
+      # Port exposed as a convenience for local development
       - "27017:27017"
     volumes:
       - mongodata:/data/db
@@ -18,6 +19,6 @@ services:
       context: .
       dockerfile: ${DOCKERFILE:-Dockerfile}
     ports:
-      - "5000:5000"
+      - "8000:8000"
     environment:
       - BOOKLIBRARY_MONGOURI=mongodb://booklibrary_db:27017

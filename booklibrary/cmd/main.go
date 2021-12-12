@@ -58,7 +58,7 @@ func main() {
 
 func config() {
 	mongoURI := getEnvString("BOOKLIBRARY_MONGOURI", "mongodb://localhost")
-	port := getEnvInt("BOOKLIBRARY_PORT", 5000)
+	port := getEnvInt("BOOKLIBRARY_PORT", 8000)
 	db := getEnvString("BOOKLIBRARY_DB", "library_database")
 	coll := getEnvString("BOOKLIBRARY_COLLECTION", "books")
 
