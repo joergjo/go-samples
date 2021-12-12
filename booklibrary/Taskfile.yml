@@ -1,0 +1,28 @@
+version: '3'
+
+tasks:
+  build:
+    desc: Builds the application binary
+    cmds:
+      - go build -o booklibrary-api cmd/main.go
+  test:
+    desc: Runs the tests
+    cmds:
+      - go test -v ./...
+  docker-build:
+    desc: Builds the appliation's Docker image
+    cmds:
+      - docker compose --profile all build
+  docker-up:
+    desc: Runs the application and MongoDB containers 
+    cmds:
+      - docker compose --profile all up -d
+  docker-down:
+    desc: Shuts down the application and MongoDB containers 
+    cmds:
+      - docker compose --profile all down
+  docker-logs:
+    desc: Streams containers stdout/stderr (blocks, CTRL+C to exit)
+    cmds:
+      - docker compose --profile all logs --follow 
+    ignore_error: true
