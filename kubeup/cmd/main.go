@@ -67,11 +67,7 @@ func main() {
 	err = srv.ListenAndServe()
 	log.Info().Msgf("Waiting for server to shut down")
 	<-srvClosed
-	if err != nil {
-		log.Error().Err(err)
-	}
-
-	log.Info().Msg("Server has shut down")
+	log.Info().Err(err).Msg("Server has shut down")
 }
 
 func getEnvVars(vars ...string) map[string]string {
