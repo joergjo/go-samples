@@ -8,7 +8,7 @@ tasks:
   test:
     desc: Runs the tests
     cmds:
-      - go test -v ./...
+      - go test -v
   docker-build:
     desc: Builds the appliation's Docker image
     cmds:
@@ -34,3 +34,7 @@ tasks:
     cmds:
       - docker compose --profile all logs --follow 
     ignore_error: true
+  mongosh:
+    desc: Connects to the MongoDB container
+    cmds:
+      - docker compose exec booklibrary-db mongosh

@@ -1,4 +1,4 @@
-package http_test
+package booklibrary_test
 
 import (
 	"bytes"
@@ -13,47 +13,50 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/joergjo/go-samples/booklibrary"
-	api "github.com/joergjo/go-samples/booklibrary/http"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 const applicationJSON = "application/json"
 
-type storeStub struct {
-	AllFn    func(ctx context.Context, limit int) ([]booklibrary.Book, error)
+type crudStub struct {
+	ListFn   func(ctx context.Context, limit int) ([]booklibrary.Book, error)
 	GetFn    func(ctx context.Context, id string) (booklibrary.Book, error)
 	AddFn    func(ctx context.Context, book booklibrary.Book) (booklibrary.Book, error)
 	UpdateFn func(ctx context.Context, id string, book booklibrary.Book) (booklibrary.Book, error)
 	RemoveFn func(ctx context.Context, id string) (booklibrary.Book, error)
+	PingFn   func(ctx context.Context) error
 }
 
 // Compile-time check to verify we implement Storage
-var _ booklibrary.Store = (*storeStub)(nil)
-
-// NewStorage creates a new Storage instance
+var _ booklibrary.CrudService = (*crudStub)(nil)
 
 // All finds all books
-func (m *storeStub) All(ctx context.Context, limit int) ([]booklibrary.Book, error) {
-	return m.AllFn(ctx, limit)
+func (cs *crudStub) List(ctx context.Context, limit int) ([]booklibrary.Book, error) {
+	return cs.ListFn(ctx, limit)
 }
 
 // Book finds a specific book
-func (m *storeStub) Get(ctx context.Context, id string) (booklibrary.Book, error) {
-	return m.GetFn(ctx, id)
+func (cs *crudStub) Get(ctx context.Context, id string) (booklibrary.Book, error) {
+	return cs.GetFn(ctx, id)
 }
 
 // Add ads a new Book
-func (m *storeStub) Add(ctx context.Context, book booklibrary.Book) (booklibrary.Book, error) {
-	return m.AddFn(ctx, book)
+func (cs *crudStub) Add(ctx context.Context, book booklibrary.Book) (booklibrary.Book, error) {
+	return cs.AddFn(ctx, book)
 }
 
 // Update updates an existing Book
-func (m *storeStub) Update(ctx context.Context, id string, book booklibrary.Book) (booklibrary.Book, error) {
-	return m.UpdateFn(ctx, id, book)
+func (cs *crudStub) Update(ctx context.Context, id string, book booklibrary.Book) (booklibrary.Book, error) {
+	return cs.UpdateFn(ctx, id, book)
 }
 
-func (m *storeStub) Remove(ctx context.Context, id string) (booklibrary.Book, error) {
-	return m.RemoveFn(ctx, id)
+// Remove removes an existing Book
+func (s *crudStub) Remove(ctx context.Context, id string) (booklibrary.Book, error) {
+	return s.RemoveFn(ctx, id)
+}
+
+func (s *crudStub) Ping(ctx context.Context) error {
+	return nil
 }
 
 func testData(count int) map[string]booklibrary.Book {
@@ -71,7 +74,7 @@ func testData(count int) map[string]booklibrary.Book {
 	return m
 }
 
-func TestGetAllBooks(t *testing.T) {
+func TestListBooks(t *testing.T) {
 	tests := []struct {
 		name  string
 		in    map[string]booklibrary.Book
@@ -83,14 +86,14 @@ func TestGetAllBooks(t *testing.T) {
 		{"get_multiple_books_with_limit", testData(10), 50, 10},
 		{"get_empty_collection", make(map[string]booklibrary.Book), -1, 0},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			store := &storeStub{}
-			store.AllFn = func(_ context.Context, _ int) ([]booklibrary.Book, error) {
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			crud := crudStub{}
+			crud.ListFn = func(_ context.Context, _ int) ([]booklibrary.Book, error) {
 				i := 0
-				bb := make([]booklibrary.Book, tt.want)
-				for _, b := range tt.in {
-					if i == tt.want {
+				bb := make([]booklibrary.Book, tc.want)
+				for _, b := range tc.in {
+					if i == tc.want {
 						break
 					}
 					bb[i] = b
@@ -98,25 +101,25 @@ func TestGetAllBooks(t *testing.T) {
 				}
 				return bb, nil
 			}
-			api := api.NewAPIHandler(store)
-			path := "/api/books"
-			if tt.limit != -1 {
-				path = fmt.Sprintf("%s?limit=%d", path, tt.limit)
+			router := booklibrary.Routes(&crud)
+			path := "/"
+			if tc.limit != -1 {
+				path = fmt.Sprintf("%s?limit=%d", path, tc.limit)
 			}
 			r := httptest.NewRequest(http.MethodGet, path, nil)
 			w := httptest.NewRecorder()
-			api.ServeHTTP(w, r)
-			resp := w.Result()
+			router.ServeHTTP(w, r)
+			res := w.Result()
 
-			if got := resp.StatusCode; got != http.StatusOK {
+			if got := res.StatusCode; got != http.StatusOK {
 				t.Fatalf("Received unexpected HTTP status code, got %d, want %d", got, http.StatusOK)
 			}
 
-			if got := resp.Header.Get("Content-Type"); got != applicationJSON {
+			if got := res.Header.Get("Content-Type"); got != applicationJSON {
 				t.Fatalf("Received unexpected HTTP content, got %q, want %q", got, applicationJSON)
 			}
 
-			body, err := io.ReadAll(resp.Body)
+			body, err := io.ReadAll(res.Body)
 			if err != nil {
 				t.Fatalf("Error reading response body: %v", err)
 			}
@@ -126,14 +129,14 @@ func TestGetAllBooks(t *testing.T) {
 				t.Fatalf("Error unmarshaling JSON response: %v", err)
 			}
 
-			if got := len(books); got > tt.want {
-				t.Fatalf("Received an unexpected number of items, got %d, want %d", got, tt.want)
+			if got := len(books); got > tc.want {
+				t.Fatalf("Received an unexpected number of items, got %d, want %d", got, tc.want)
 			}
 		})
 	}
 }
 
-func TestGetBookByID(t *testing.T) {
+func TestGetBook(t *testing.T) {
 	tests := []struct {
 		name string
 		in   string
@@ -142,9 +145,9 @@ func TestGetBookByID(t *testing.T) {
 		{"get_by_id", "000000000000000000000001", 200},
 		{"get_unknown_id", "000000000000000000000004", 404},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			store := &storeStub{}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			crud := crudStub{}
 			id, err := primitive.ObjectIDFromHex("000000000000000000000001")
 			if err != nil {
 				t.Fatalf("Error creating ObjectID")
@@ -152,22 +155,22 @@ func TestGetBookByID(t *testing.T) {
 			b := booklibrary.Book{
 				ID: id,
 			}
-			store.GetFn = func(_ context.Context, id string) (booklibrary.Book, error) {
+			crud.GetFn = func(_ context.Context, id string) (booklibrary.Book, error) {
 				if id != string(b.ID.Hex()) {
 					return booklibrary.Book{}, booklibrary.ErrNotFound
 				}
 				return b, nil
 			}
 
-			api := api.NewAPIHandler(store)
-			r := httptest.NewRequest(http.MethodGet, "/api/books/"+tt.in, nil)
+			router := booklibrary.Routes(&crud)
+			r := httptest.NewRequest(http.MethodGet, "/"+tc.in, nil)
 			w := httptest.NewRecorder()
-			api.ServeHTTP(w, r)
-			resp := w.Result()
+			router.ServeHTTP(w, r)
+			res := w.Result()
 
-			got := resp.StatusCode
-			if got != tt.want {
-				t.Fatalf("Received unexpected HTTP status code, got %d, want %d", got, tt.want)
+			got := res.StatusCode
+			if got != tc.want {
+				t.Fatalf("Received unexpected HTTP status code, got %d, want %d", got, tc.want)
 			}
 
 			if got != http.StatusOK {
@@ -175,8 +178,8 @@ func TestGetBookByID(t *testing.T) {
 				return
 			}
 
-			want, _ := primitive.ObjectIDFromHex(tt.in)
-			body, err := io.ReadAll(resp.Body)
+			want, _ := primitive.ObjectIDFromHex(tc.in)
+			body, err := io.ReadAll(res.Body)
 			if err != nil {
 				t.Fatalf("Error reading response body: %v", err)
 			}
@@ -202,9 +205,9 @@ func TestDeleteBook(t *testing.T) {
 		{"delete_by_id", "000000000000000000000001", 204},
 		{"delete_unknown_id", "000000000000000000000004", 404},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			store := &storeStub{}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			crud := crudStub{}
 			id, err := primitive.ObjectIDFromHex("000000000000000000000001")
 			if err != nil {
 				t.Fatalf("Error creating ObjectID")
@@ -212,73 +215,73 @@ func TestDeleteBook(t *testing.T) {
 			b := booklibrary.Book{
 				ID: id,
 			}
-			store.RemoveFn = func(_ context.Context, id string) (booklibrary.Book, error) {
+			crud.RemoveFn = func(_ context.Context, id string) (booklibrary.Book, error) {
 				if id != string(b.ID.Hex()) {
 					return booklibrary.Book{}, booklibrary.ErrNotFound
 				}
 				return b, nil
 			}
 
-			api := api.NewAPIHandler(store)
-			r := httptest.NewRequest(http.MethodDelete, "/api/books/"+tt.in, nil)
+			router := booklibrary.Routes(&crud)
+			r := httptest.NewRequest(http.MethodDelete, "/"+tc.in, nil)
 			w := httptest.NewRecorder()
-			api.ServeHTTP(w, r)
+			router.ServeHTTP(w, r)
 
-			if got := w.Result().StatusCode; got != tt.want {
-				t.Fatalf("Received unexpected HTTP status code, got %d, want %d", got, tt.want)
+			if got := w.Result().StatusCode; got != tc.want {
+				t.Fatalf("Received unexpected HTTP status code, got %d, want %d", got, tc.want)
 			}
 		})
 	}
 }
 
 func TestAddBook(t *testing.T) {
-	store := &storeStub{}
-	store.AddFn = func(_ context.Context, book booklibrary.Book) (booklibrary.Book, error) {
+	crud := crudStub{}
+	crud.AddFn = func(_ context.Context, book booklibrary.Book) (booklibrary.Book, error) {
 		book.ID = primitive.NewObjectID()
 		return book, nil
 	}
 
-	api := api.NewAPIHandler(store)
-	book := &booklibrary.Book{
+	router := booklibrary.Routes(&crud)
+	book := booklibrary.Book{
 		Author:      "Jörg Jooss",
 		Title:       "Go Testing in Action",
 		ReleaseDate: time.Now(),
 		Keywords:    []booklibrary.Keyword{{Value: "Golang"}, {Value: "Testing"}},
 	}
-	body, err := json.Marshal(book)
+	body, err := json.Marshal(&book)
 	if err != nil {
 		t.Logf("Error marshaling Book: %v", err)
 		t.FailNow()
 	}
-	r := httptest.NewRequest(http.MethodPost, "/api/books", bytes.NewBuffer(body))
+	r := httptest.NewRequest(http.MethodPost, "/", bytes.NewBuffer(body))
 	w := httptest.NewRecorder()
-	api.ServeHTTP(w, r)
-	resp := w.Result()
+	router.ServeHTTP(w, r)
+	res := w.Result()
 
-	if got := resp.StatusCode; got != http.StatusCreated {
+	if got := res.StatusCode; got != http.StatusCreated {
 		t.Fatalf("Received unexpected HTTP status code, got %d, want %d", got, http.StatusCreated)
 	}
 
-	if got := resp.Header.Get("Content-Type"); got != applicationJSON {
+	if got := res.Header.Get("Content-Type"); got != applicationJSON {
 		t.Fatalf("Received unexpected HTTP content, got %q, want %q", got, applicationJSON)
 	}
 
-	body, err = io.ReadAll(resp.Body)
+	body, err = io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("Error reading response body: %v", err)
 	}
 
-	book = &booklibrary.Book{}
-	if err := json.Unmarshal(body, book); err != nil {
+	book = booklibrary.Book{}
+	if err := json.Unmarshal(body, &book); err != nil {
 		t.Fatalf("Error unmarshaling JSON response: %v", err)
 	}
 
-	got := resp.Header.Get("Location")
+	got := res.Header.Get("Location")
 	if got == "" {
 		t.Fatalf("No Location header present in response")
 	}
 
-	want := "/api/books/" + book.ID.Hex()
+	want := "/" + book.ID.Hex()
 	if got != want {
 		t.Fatalf("Incorrect Location header, want %q, got %q", want, got)
 	}
@@ -293,17 +296,17 @@ func TestUpdateBook(t *testing.T) {
 		{"update_by_id", "000000000000000000000003", 200},
 		{"update_invalid_id", "000000000000000000000004", 404},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			store := &storeStub{}
-			store.UpdateFn = func(_ context.Context, id string, book booklibrary.Book) (booklibrary.Book, error) {
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			crud := crudStub{}
+			crud.UpdateFn = func(_ context.Context, id string, book booklibrary.Book) (booklibrary.Book, error) {
 				if id != "000000000000000000000003" {
 					return booklibrary.Book{}, booklibrary.ErrNotFound
 				}
 				return book, nil
 			}
 
-			id, err := primitive.ObjectIDFromHex(tt.in)
+			id, err := primitive.ObjectIDFromHex(tc.in)
 			if err != nil {
 				t.Fatalf("Error creating ObjectID")
 			}
@@ -320,26 +323,26 @@ func TestUpdateBook(t *testing.T) {
 				t.Fatalf("Error marshaling Book: %v.", err)
 			}
 
-			api := api.NewAPIHandler(store)
-			r := httptest.NewRequest(http.MethodPut, "/api/books/"+book.ID.Hex(), bytes.NewBuffer(body))
+			router := booklibrary.Routes(&crud)
+			r := httptest.NewRequest(http.MethodPut, "/"+book.ID.Hex(), bytes.NewBuffer(body))
 			w := httptest.NewRecorder()
-			api.ServeHTTP(w, r)
-			resp := w.Result()
+			router.ServeHTTP(w, r)
+			res := w.Result()
 
-			if got := resp.StatusCode; got != tt.want {
-				t.Fatalf("Received unexpected HTTP status code, got %d, want %d", got, tt.want)
+			if got := res.StatusCode; got != tc.want {
+				t.Fatalf("Received unexpected HTTP status code, got %d, want %d", got, tc.want)
 			}
 
-			if resp.StatusCode != http.StatusOK {
+			if res.StatusCode != http.StatusOK {
 				// The remainder of this test only apply to HTTP 200 OK
 				return
 			}
 
-			if got := resp.Header.Get("Content-Type"); got != applicationJSON {
+			if got := res.Header.Get("Content-Type"); got != applicationJSON {
 				t.Fatalf("Received unexpected HTTP content, got %q, want %q", got, applicationJSON)
 			}
 
-			body, err = io.ReadAll(resp.Body)
+			body, err = io.ReadAll(res.Body)
 			if err != nil {
 				t.Fatalf("Error reading response body: %v", err)
 			}
