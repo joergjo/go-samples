@@ -16,9 +16,9 @@ type Book struct {
 	Keywords    []Keyword          `json:"keywords" bson:"keywords"`
 }
 
-// Keyword represent a certain topic a book covers
-type Keyword struct {
-	Value string `json:"keyword" bson:"keyword"`
+// IDStr returns the ID of the book in Hex format
+func (b Book) IDStr() string {
+	return b.ID.Hex()
 }
 
 // MarshalJSON serializes a Book with its ReleaseDate rendered as Unix time
@@ -47,6 +47,11 @@ func (b *Book) UnmarshalJSON(data []byte) error {
 	}
 	b.ReleaseDate = time.Unix(dto.ReleaseDate, 0)
 	return nil
+}
+
+// Keyword represents a book's topic
+type Keyword struct {
+	Value string `json:"keyword" bson:"keyword"`
 }
 
 func (kw Keyword) String() string {

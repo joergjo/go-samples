@@ -1,4 +1,4 @@
-FROM golang:1.17 AS builder
+FROM golang:1.19 AS builder
 
 WORKDIR /build
 
@@ -18,7 +18,7 @@ RUN go mod download
 
 # Copy our source code over and build the binary
 COPY . .
-RUN CGO_ENABLED=0 go build -ldflags '-s -w' -tags 'osusergo netgo' -o booklibrary-api ./cmd/main.go
+RUN CGO_ENABLED=0 go build -ldflags '-s -w' -o booklibrary-api ./cmd/main.go
 
 FROM scratch AS final
 EXPOSE 8000
