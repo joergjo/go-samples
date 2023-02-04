@@ -7,7 +7,7 @@ require (
 	github.com/google/go-cmp v0.5.9
 	github.com/prometheus/client_golang v1.14.0
 	go.mongodb.org/mongo-driver v1.11.1
-	golang.org/x/exp v0.0.0-20221217163422-3c43f8badb15
+	golang.org/x/exp v0.0.0-20230203172020-98cc5a0785f9
 )
 
 require (
