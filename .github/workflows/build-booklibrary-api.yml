@@ -6,13 +6,11 @@ on:
   push:
     branches:
       - 'main'
-    paths-ignore:
-      - './booklibrary/deploy/**'
-      - './booklibrary/media/**'
-      - './booklibrary/testdata/**'
-      - './booklibrary/README.md'
-      - './booklibrary/compose*.yaml'
-      - './booklibrary/Taskfile*.yml'
+    paths:
+      - './booklibrary/**/*.go'
+      - './booklibrary/go.mod'
+      - './booklibrary/go.sum'
+      - './booklibrary/Dockerfile'
 
 jobs:
   build:

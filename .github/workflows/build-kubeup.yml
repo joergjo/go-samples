@@ -6,12 +6,11 @@ on:
   push:
     branches:
       - 'main'
-    paths-ignore:
-      - './kubeup/deploy/**'
-      - './kubeup/media/**'
-      - './kubeup/testdata/**'
-      - './kubeup/README.md'
-      - './kubeup/compose*.yaml'
+    paths:
+      - "./kubeup/**/*.go"
+      - "./kubeup/go.mod"
+      - "./kubeup/go.sum"
+      - "./kubeup/Dockerfile"
 
 jobs:
   build:
