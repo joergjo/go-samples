@@ -6,7 +6,3 @@ root = true
 [*.go]
 indent_style = tab
 indent_size = 8
-
-[*.proto]
-indent_style = space
-indent_size = 2
