@@ -7,10 +7,10 @@ on:
     branches:
       - 'main'
     paths:
-      - './booklibrary/**/*.go'
-      - './booklibrary/go.mod'
-      - './booklibrary/go.sum'
-      - './booklibrary/Dockerfile'
+      - 'booklibrary/**/*.go'
+      - 'booklibrary/go.mod'
+      - 'booklibrary/go.sum'
+      - 'booklibrary/Dockerfile'
 
 jobs:
   build:

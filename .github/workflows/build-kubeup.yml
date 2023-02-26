@@ -7,10 +7,10 @@ on:
     branches:
       - 'main'
     paths:
-      - "./kubeup/**/*.go"
-      - "./kubeup/go.mod"
-      - "./kubeup/go.sum"
-      - "./kubeup/Dockerfile"
+      - "kubeup/**/*.go"
+      - "kubeup/go.mod"
+      - "kubeup/go.sum"
+      - "kubeup/Dockerfile"
 
 jobs:
   build:
