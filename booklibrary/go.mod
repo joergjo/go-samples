@@ -6,8 +6,8 @@ require (
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/google/go-cmp v0.5.9
 	github.com/prometheus/client_golang v1.14.0
-	go.mongodb.org/mongo-driver v1.11.1
-	golang.org/x/exp v0.0.0-20230203172020-98cc5a0785f9
+	go.mongodb.org/mongo-driver v1.11.2
+	golang.org/x/exp v0.0.0-20230224173230-c95f2b4c22f2
 )
 
 require (
