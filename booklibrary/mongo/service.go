@@ -35,19 +35,19 @@ func NewCrudService(mongoURI, database, collection string) (*CrudService, error)
 	// Set client options
 	opts := options.Client().ApplyURI(mongoURI)
 	if err := opts.Validate(); err != nil {
-		slog.Error("Validating client options", err, slog.Any("options", opts))
+		slog.Error("validating client options", booklibrary.ErrorKey, err, slog.Any("options", opts))
 		return nil, err
 	}
 
 	// Connect to MongoDB
 	client, err := mongo.Connect(ctx, opts)
 	if err != nil {
-		slog.Error("Connecting to MongoDB", err)
+		slog.Error("connecting to MongoDB", booklibrary.ErrorKey, err)
 		return nil, err
 	}
 
 	if err := client.Ping(ctx, nil); err != nil {
-		slog.Error("Pinging MongoDB", err)
+		slog.Error("pinging MongoDB", booklibrary.ErrorKey, err)
 		return nil, err
 	}
 
@@ -78,7 +78,7 @@ func (cs *CrudService) Get(ctx context.Context, id string) (booklibrary.Book, er
 	defer cancel()
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		slog.Error("Parsing ObjectID", err, slog.String("id", id))
+		slog.Error("parsing ObjectID", booklibrary.ErrorKey, err, slog.String("id", id))
 		return booklibrary.Book{}, booklibrary.ErrInvalidID
 	}
 
@@ -100,7 +100,7 @@ func (cs *CrudService) Add(ctx context.Context, book booklibrary.Book) (booklibr
 
 	res, err := cs.collection.InsertOne(ctx, book)
 	if err != nil {
-		slog.Error("Inserting document", err)
+		slog.Error("inserting document", booklibrary.ErrorKey, err)
 		return booklibrary.Book{}, err
 	}
 	book.ID = res.InsertedID.(primitive.ObjectID)
@@ -111,7 +111,7 @@ func (cs *CrudService) Add(ctx context.Context, book booklibrary.Book) (booklibr
 func (cs *CrudService) Update(ctx context.Context, id string, book booklibrary.Book) (booklibrary.Book, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		slog.Error("Parsing ObjectID", err, slog.String("id", id))
+		slog.Error("parsing ObjectID", booklibrary.ErrorKey, err, booklibrary.IdKey, id)
 		return booklibrary.Book{}, booklibrary.ErrInvalidID
 	}
 
@@ -127,7 +127,7 @@ func (cs *CrudService) Update(ctx context.Context, id string, book booklibrary.B
 		"keywords":    book.Keywords}}
 	res := cs.collection.FindOneAndUpdate(ctx, filter, update, options)
 	if err := res.Err(); err != nil {
-		slog.Error("Updating document", err, slog.String("id", id))
+		slog.Error("updating document", booklibrary.ErrorKey, err, booklibrary.IdKey, id)
 		if err != mongo.ErrNoDocuments {
 			return booklibrary.Book{}, err
 		}
@@ -137,7 +137,7 @@ func (cs *CrudService) Update(ctx context.Context, id string, book booklibrary.B
 	var b booklibrary.Book
 	err = res.Decode(&b)
 	if err != nil {
-		slog.Error("Decoding document", err)
+		slog.Error("decoding document", booklibrary.ErrorKey, err)
 		return booklibrary.Book{}, err
 	}
 	return b, nil
@@ -147,7 +147,7 @@ func (cs *CrudService) Update(ctx context.Context, id string, book booklibrary.B
 func (cs *CrudService) Remove(ctx context.Context, id string) (booklibrary.Book, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		slog.Error("Parsing ObjectID", err, slog.String("id", id))
+		slog.Error("parsing ObjectID", booklibrary.ErrorKey, err, booklibrary.IdKey, id)
 		return booklibrary.Book{}, booklibrary.ErrInvalidID
 	}
 
@@ -157,7 +157,7 @@ func (cs *CrudService) Remove(ctx context.Context, id string) (booklibrary.Book,
 	filter := bson.M{"_id": oid}
 	res := cs.collection.FindOneAndDelete(ctx, filter)
 	if err := res.Err(); err != nil {
-		slog.Error("Deleting document", err, slog.String("id", id))
+		slog.Error("deleting document", booklibrary.ErrorKey, err, booklibrary.IdKey, id)
 		if err != mongo.ErrNoDocuments {
 			return booklibrary.Book{}, err
 		}
@@ -167,7 +167,7 @@ func (cs *CrudService) Remove(ctx context.Context, id string) (booklibrary.Book,
 	var b booklibrary.Book
 	err = res.Decode(&b)
 	if err != nil {
-		slog.Error("Decoding document", err)
+		slog.Error("decoding document", booklibrary.ErrorKey, err)
 		return booklibrary.Book{}, err
 	}
 	return b, nil
@@ -180,7 +180,7 @@ func (cs *CrudService) find(ctx context.Context, filter primitive.M, limit int) 
 	findOptions := options.Find().SetLimit(int64(limit))
 	cur, err := cs.collection.Find(ctx, filter, findOptions)
 	if err != nil {
-		slog.Error("Finding document(s)", err)
+		slog.Error("finding document(s)", booklibrary.ErrorKey, err)
 		return nil, err
 	}
 	defer cur.Close(ctx)
@@ -193,14 +193,14 @@ func (cs *CrudService) find(ctx context.Context, filter primitive.M, limit int) 
 			if err == mongo.ErrNoDocuments {
 				return []booklibrary.Book{}, nil
 			}
-			slog.Error("Decoding document", err)
+			slog.Error("decoding document", booklibrary.ErrorKey, err)
 			break
 		}
 		books = append(books, b)
 	}
 
 	if err := cur.Err(); err != nil {
-		slog.Error("Iterating over cursor", err)
+		slog.Error("iterating over cursor", booklibrary.ErrorKey, err)
 		return nil, err
 	}
 	return books, nil

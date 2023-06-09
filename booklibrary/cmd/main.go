@@ -31,14 +31,14 @@ func main() {
 
 	crud, err := newCrudService(conf.mongoURI, conf.db, conf.collection)
 	if err != nil {
-		slog.Error("Fatal error creating book service", err)
+		slog.Error("creating book service", booklibrary.ErrorKey, err)
 		os.Exit(1)
 	}
 	defer func() {
 		if err := crud.Close(context.Background()); err != nil {
-			slog.Error("Error closing database connection", err)
+			slog.Error("closing database connection", booklibrary.ErrorKey, err)
 		} else {
-			slog.Info("Closed database connection")
+			slog.Info("closed database connection")
 		}
 	}()
 
@@ -47,26 +47,26 @@ func main() {
 	done := make(chan struct{})
 	go shutdown(context.Background(), srv, done)
 
-	slog.Info(fmt.Sprintf("Server starting, listening on 0.0.0.0:%d", conf.port))
+	slog.Info(fmt.Sprintf("server starting, listening on 0.0.0.0:%d", conf.port))
 	if err = srv.ListenAndServe(); err != http.ErrServerClosed {
-		slog.Error("Server error", err)
+		slog.Error("server error", booklibrary.ErrorKey, err)
 	}
-	slog.Info("Waiting for shut down to complete")
+	slog.Info("waiting for shut down to complete")
 	<-done
-	slog.Info("Server has shut down")
+	slog.Info("server has shut down")
 }
 
 func shutdown(ctx context.Context, s *http.Server, done chan struct{}) {
 	sigch := make(chan os.Signal, 1)
 	signal.Notify(sigch, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-sigch
-	slog.Warn(fmt.Sprintf("Got signal %v", sig))
+	slog.Warn(fmt.Sprintf("got signal %v", sig))
 
 	childCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	if err := s.Shutdown(childCtx); err != nil {
-		slog.Error("Error during shutdown", err)
+		slog.Error("shutdown", booklibrary.ErrorKey, err)
 	}
 	close(done)
 }
@@ -101,16 +101,16 @@ func newLogger(w io.Writer, debug bool) *slog.Logger {
 		opts.Level = slog.LevelDebug
 	}
 
-	return slog.New(opts.NewTextHandler(w))
+	return slog.New(slog.NewTextHandler(w, &opts))
 }
 
 func newCrudService(uri, db, coll string) (*mongo.CrudService, error) {
-	slog.Debug(fmt.Sprintf("Connecting to MongoDB at %q", uri))
+	slog.Debug(fmt.Sprintf("connecting to MongoDB at %q", uri))
 	crud, err := mongo.NewCrudService(uri, db, coll)
 	if err != nil {
 		return nil, err
 	}
-	slog.Debug(fmt.Sprintf("Connected to MongoDB at %q", uri))
+	slog.Debug(fmt.Sprintf("connected to MongoDB at %q", uri))
 	return crud, nil
 }
 

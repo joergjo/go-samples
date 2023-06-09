@@ -254,6 +254,7 @@ func TestAddBook(t *testing.T) {
 		t.FailNow()
 	}
 	r := httptest.NewRequest(http.MethodPost, "/", bytes.NewBuffer(body))
+	r.Header.Set("Content-Type", applicationJSON)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, r)
 	res := w.Result()
@@ -325,6 +326,7 @@ func TestUpdateBook(t *testing.T) {
 
 			router := booklibrary.Routes(&crud)
 			r := httptest.NewRequest(http.MethodPut, "/"+book.ID.Hex(), bytes.NewBuffer(body))
+			r.Header.Set("Content-Type", applicationJSON)
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, r)
 			res := w.Result()
