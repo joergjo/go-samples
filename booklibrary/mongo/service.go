@@ -2,11 +2,15 @@ package mongo
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/joergjo/go-samples/booklibrary"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -22,10 +26,32 @@ type CrudService struct {
 
 var (
 	// Compile-time check to verify we implement Storage
-	_              booklibrary.CrudService = (*CrudService)(nil)
-	timeout                                = 2 * time.Second
-	startupTimeout                         = 10 * time.Second
+	_                  booklibrary.CrudService = (*CrudService)(nil)
+	timeout                                    = 2 * time.Second
+	startupTimeout                             = 10 * time.Second
+	connectionIDKey                            = "connectionID"
+	heartbeatSucceeded                         = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "booklibrary_mongodb_heartbeat_succeeded_total",
+		Help: "The total number of successful MongoDB server heartbeats",
+	})
+	heartbeatFailed = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "booklibrary_mongodb_server_heartbeat_failed_total",
+		Help: "The total number of failed MongoDB server heartbeats",
+	})
 )
+
+func newMonitor() *event.ServerMonitor {
+	return &event.ServerMonitor{
+		ServerHeartbeatFailed: func(evt *event.ServerHeartbeatFailedEvent) {
+			heartbeatFailed.Inc()
+			slog.Warn("MongoDB server heartbeat failed", booklibrary.ErrorKey, evt.Failure, connectionIDKey, evt.ConnectionID)
+		},
+		ServerHeartbeatSucceeded: func(evt *event.ServerHeartbeatSucceededEvent) {
+			heartbeatSucceeded.Inc()
+			slog.Debug("server heartbeat succeeded", connectionIDKey, evt.ConnectionID)
+		},
+	}
+}
 
 // NewStorage creates a new Storage backed by MongoDB
 func NewCrudService(mongoURI, database, collection string) (*CrudService, error) {
@@ -33,7 +59,7 @@ func NewCrudService(mongoURI, database, collection string) (*CrudService, error)
 	defer cancel()
 
 	// Set client options
-	opts := options.Client().ApplyURI(mongoURI)
+	opts := options.Client().ApplyURI(mongoURI).SetServerMonitor(newMonitor())
 	if err := opts.Validate(); err != nil {
 		slog.Error("validating client options", booklibrary.ErrorKey, err, slog.Any("options", opts))
 		return nil, err
@@ -132,7 +158,7 @@ func (cs *CrudService) Update(ctx context.Context, id string, book booklibrary.B
 	res := cs.collection.FindOneAndUpdate(ctx, filter, update, options)
 	if err := res.Err(); err != nil {
 		slog.Error("updating document", booklibrary.ErrorKey, err, booklibrary.IdKey, id)
-		if err != mongo.ErrNoDocuments {
+		if !errors.Is(err, mongo.ErrNoDocuments) {
 			return booklibrary.Book{}, err
 		}
 		return booklibrary.Book{}, booklibrary.ErrNotFound
@@ -162,7 +188,7 @@ func (cs *CrudService) Remove(ctx context.Context, id string) (booklibrary.Book,
 	res := cs.collection.FindOneAndDelete(ctx, filter)
 	if err := res.Err(); err != nil {
 		slog.Error("deleting document", booklibrary.ErrorKey, err, booklibrary.IdKey, id)
-		if err != mongo.ErrNoDocuments {
+		if !errors.Is(err, mongo.ErrNoDocuments) {
 			return booklibrary.Book{}, err
 		}
 		return booklibrary.Book{}, booklibrary.ErrNotFound
@@ -194,7 +220,7 @@ func (cs *CrudService) find(ctx context.Context, filter primitive.M, limit int) 
 		var b booklibrary.Book
 		err := cur.Decode(&b)
 		if err != nil {
-			if err == mongo.ErrNoDocuments {
+			if errors.Is(err, mongo.ErrNoDocuments) {
 				return []booklibrary.Book{}, nil
 			}
 			slog.Error("decoding document", booklibrary.ErrorKey, err)
