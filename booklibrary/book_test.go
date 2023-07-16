@@ -6,14 +6,9 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestMarshalJSON(t *testing.T) {
-	oid, err := primitive.ObjectIDFromHex("000000000000000000000001")
-	if err != nil {
-		t.Fatalf("Fatal error creating ObjectID: %v\n", err)
-	}
 	loc, err := time.LoadLocation("UTC")
 	if err != nil {
 		t.Fatalf("Fatal error loading UTC location: %v\n", err)
@@ -26,7 +21,7 @@ func TestMarshalJSON(t *testing.T) {
 		{
 			name: "book_with_single_tag",
 			in: Book{
-				ID:          oid,
+				ID:          "000000000000000000000001",
 				Author:      "John Doe",
 				Title:       "Unit Testing in Go",
 				ReleaseDate: time.Date(2020, time.February, 1, 11, 0, 0, 0, loc),
@@ -37,7 +32,7 @@ func TestMarshalJSON(t *testing.T) {
 		{
 			name: "book_with_multiple_tags",
 			in: Book{
-				ID:          oid,
+				ID:          "000000000000000000000001",
 				Author:      "John Doe",
 				Title:       "Unit Testing in Go and Python",
 				ReleaseDate: time.Date(2020, time.February, 1, 11, 0, 0, 0, loc),
@@ -61,10 +56,6 @@ func TestMarshalJSON(t *testing.T) {
 }
 
 func TestUnmarshalJSON(t *testing.T) {
-	oid, err := primitive.ObjectIDFromHex("000000000000000000000001")
-	if err != nil {
-		t.Fatalf("Fatal error creating ObjectID: %v\n", err)
-	}
 	loc, err := time.LoadLocation("UTC")
 	if err != nil {
 		t.Fatalf("Fatal error loading UTC location: %v\n", err)
@@ -78,7 +69,7 @@ func TestUnmarshalJSON(t *testing.T) {
 			name: "book_with_single_tag",
 			in:   "{\"releaseDate\":1580554800,\"_id\":\"000000000000000000000001\",\"author\":\"John Doe\",\"title\":\"Unit Testing in Go\",\"keywords\":[{\"keyword\":\"Golang\"}]}",
 			want: Book{
-				ID:          oid,
+				ID:          "000000000000000000000001",
 				Author:      "John Doe",
 				Title:       "Unit Testing in Go",
 				ReleaseDate: time.Date(2020, time.February, 1, 11, 0, 0, 0, loc),
@@ -89,7 +80,7 @@ func TestUnmarshalJSON(t *testing.T) {
 			name: "book_with_multiple_tags",
 			in:   "{\"releaseDate\":1580554800,\"_id\":\"000000000000000000000001\",\"author\":\"John Doe\",\"title\":\"Unit Testing in Go and Python\",\"keywords\":[{\"keyword\":\"Golang\"},{\"keyword\":\"Python\"}]}",
 			want: Book{
-				ID:          oid,
+				ID:          "000000000000000000000001",
 				Author:      "John Doe",
 				Title:       "Unit Testing in Go and Python",
 				ReleaseDate: time.Date(2020, time.February, 1, 11, 0, 0, 0, loc),

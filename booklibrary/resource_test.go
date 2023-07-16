@@ -62,8 +62,8 @@ func (s *crudStub) Ping(ctx context.Context) error {
 func testData(count int) map[string]booklibrary.Book {
 	m := make(map[string]booklibrary.Book, count)
 	for i := 0; i < count; i++ {
-		id := primitive.NewObjectID()
-		m[id.Hex()] = booklibrary.Book{
+		id := primitive.NewObjectID().Hex()
+		m[id] = booklibrary.Book{
 			ID:          id,
 			Author:      "John Doe",
 			Title:       fmt.Sprintf("Unit Testing, Volume %d", i),
@@ -148,15 +148,11 @@ func TestGetBook(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			crud := crudStub{}
-			id, err := primitive.ObjectIDFromHex("000000000000000000000001")
-			if err != nil {
-				t.Fatalf("Error creating ObjectID")
-			}
 			b := booklibrary.Book{
-				ID: id,
+				ID: "000000000000000000000001",
 			}
 			crud.GetFn = func(_ context.Context, id string) (booklibrary.Book, error) {
-				if id != string(b.ID.Hex()) {
+				if id != "000000000000000000000001" {
 					return booklibrary.Book{}, booklibrary.ErrNotFound
 				}
 				return b, nil
@@ -178,7 +174,6 @@ func TestGetBook(t *testing.T) {
 				return
 			}
 
-			want, _ := primitive.ObjectIDFromHex(tc.in)
 			body, err := io.ReadAll(res.Body)
 			if err != nil {
 				t.Fatalf("Error reading response body: %v", err)
@@ -189,8 +184,8 @@ func TestGetBook(t *testing.T) {
 				t.Fatalf("Error unmarshaling JSON response: %v", err)
 			}
 
-			if book.ID != want {
-				t.Fatalf("Received unexpected Book, got %q, want %q", book.ID, want)
+			if book.ID != tc.in {
+				t.Fatalf("Received unexpected Book, got %q, want %q", book.ID, tc.in)
 			}
 		})
 	}
@@ -208,15 +203,11 @@ func TestDeleteBook(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			crud := crudStub{}
-			id, err := primitive.ObjectIDFromHex("000000000000000000000001")
-			if err != nil {
-				t.Fatalf("Error creating ObjectID")
-			}
 			b := booklibrary.Book{
-				ID: id,
+				ID: "000000000000000000000001",
 			}
 			crud.RemoveFn = func(_ context.Context, id string) (booklibrary.Book, error) {
-				if id != string(b.ID.Hex()) {
+				if id != "000000000000000000000001" {
 					return booklibrary.Book{}, booklibrary.ErrNotFound
 				}
 				return b, nil
@@ -237,7 +228,7 @@ func TestDeleteBook(t *testing.T) {
 func TestAddBook(t *testing.T) {
 	crud := crudStub{}
 	crud.AddFn = func(_ context.Context, book booklibrary.Book) (booklibrary.Book, error) {
-		book.ID = primitive.NewObjectID()
+		book.ID = primitive.NewObjectID().Hex()
 		return book, nil
 	}
 
@@ -282,7 +273,7 @@ func TestAddBook(t *testing.T) {
 		t.Fatalf("No Location header present in response")
 	}
 
-	want := "/" + book.ID.Hex()
+	want := "/" + book.ID
 	if got != want {
 		t.Fatalf("Incorrect Location header, want %q, got %q", want, got)
 	}
@@ -307,13 +298,8 @@ func TestUpdateBook(t *testing.T) {
 				return book, nil
 			}
 
-			id, err := primitive.ObjectIDFromHex(tc.in)
-			if err != nil {
-				t.Fatalf("Error creating ObjectID")
-			}
-
 			book := booklibrary.Book{
-				ID:          id,
+				ID:          tc.in,
 				Author:      "Jörg Jooss",
 				Title:       "Go Testing in 24 Minutes",
 				ReleaseDate: time.Date(2021, 1, 10, 0, 0, 0, 0, time.UTC),
@@ -325,7 +311,7 @@ func TestUpdateBook(t *testing.T) {
 			}
 
 			router := booklibrary.Routes(&crud)
-			r := httptest.NewRequest(http.MethodPut, "/"+book.ID.Hex(), bytes.NewBuffer(body))
+			r := httptest.NewRequest(http.MethodPut, "/"+book.ID, bytes.NewBuffer(body))
 			r.Header.Set("Content-Type", applicationJSON)
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, r)

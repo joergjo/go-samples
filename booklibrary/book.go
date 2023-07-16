@@ -3,22 +3,15 @@ package booklibrary
 import (
 	"encoding/json"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // Book represent a book in our library
 type Book struct {
-	ID          primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
-	Author      string             `json:"author" bson:"author"`
-	Title       string             `json:"title" bson:"title"`
-	ReleaseDate time.Time          `json:"releaseDate" bson:"releaseDate"`
-	Keywords    []Keyword          `json:"keywords" bson:"keywords"`
-}
-
-// IDStr returns the ID of the book in Hex format
-func (b Book) IDStr() string {
-	return b.ID.Hex()
+	ID          string    `json:"_id" bson:"_id,omitempty"`
+	Author      string    `json:"author" bson:"author"`
+	Title       string    `json:"title" bson:"title"`
+	ReleaseDate time.Time `json:"releaseDate" bson:"releaseDate"`
+	Keywords    []Keyword `json:"keywords" bson:"keywords"`
 }
 
 // MarshalJSON serializes a Book with its ReleaseDate rendered as Unix time

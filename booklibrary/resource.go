@@ -142,7 +142,7 @@ func (rs Resource) Create(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimSuffix(r.URL.String(), "/")
 	loc := header{
 		name: "Location",
-		val:  fmt.Sprintf("%s/%s", path, added.IDStr()),
+		val:  fmt.Sprintf("%s/%s", path, added.ID),
 	}
 	respond(w, added, http.StatusCreated, loc)
 	slog.Debug(

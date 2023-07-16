@@ -103,7 +103,11 @@ func (cs *CrudService) Add(ctx context.Context, book booklibrary.Book) (booklibr
 		slog.Error("inserting document", booklibrary.ErrorKey, err)
 		return booklibrary.Book{}, err
 	}
-	book.ID = res.InsertedID.(primitive.ObjectID)
+	oid, ok := res.InsertedID.(primitive.ObjectID)
+	if !ok {
+		panic("inserted ID is not an ObjectID")
+	}
+	book.ID = oid.Hex()
 	return book, nil
 }
 
