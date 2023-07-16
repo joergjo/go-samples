@@ -9,19 +9,8 @@
             "command": "go",
             "args": [
                 "build",
-                "-o",
-                "${workspaceFolderBasename}-api",
-                "cmd/main.go"
+                "./cmd/booklibrary-api"
             ],
-            "windows":{
-                "command": "go",
-                "args": [
-                    "build",
-                    "-o",
-                    "${workspaceFolderBasename}-api.exe",
-                    "cmd/main.go"   
-                ]             
-            },
             "group": {
                 "kind": "build",
                 "isDefault": true

@@ -11,9 +11,6 @@
             "mode": "exec",
             "program": "${workspaceFolder}/booklibrary-api",
             "windows": {
-                "name": "Launch executable",
-                "type": "go",
-                "request": "launch",
                 "program": "${workspaceFolder}/booklibrary-api.exe",
             },
             "env": {
@@ -21,7 +18,7 @@
             },
             "args": [
                 "--port",
-                "5000"
+                "8000"
             ]
         }
     ]
