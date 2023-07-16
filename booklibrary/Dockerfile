@@ -1,36 +1,12 @@
-FROM golang:1.20 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.20 AS build
+WORKDIR /src
+ARG TARGETOS TARGETARCH
+RUN --mount=target=. \
+    --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg \
+    GOOS=$TARGETOS GOARCH=$TARGETARCH CGO_ENABLED=0 go build -o /out/ ./cmd/booklibrary-api
 
-WORKDIR /build
-
-# Enable Go's DNS resolver to read from /etc/hosts
-RUN echo "hosts: files dns" > /etc/nsswitch.conf.min
-
-# Create a minimal passwd so we can run as non-root in the container
-RUN echo "nobody:x:65534:65534:Nobody:/:" > /etc/passwd.min
-
-# Fetch latest CA certificates
-RUN apt-get update && \
-    apt-get install -y ca-certificates
-
-# Only download Go modules (improves build caching)
-COPY go.mod go.sum ./
-RUN go mod download
-
-# Copy our source code over and build the binary
-COPY . .
-RUN CGO_ENABLED=0 go build -ldflags '-s -w' -o booklibrary-api ./cmd/main.go
-
-FROM scratch AS final
+FROM --platform=$BUILDPLATFORM gcr.io/distroless/static:nonroot AS final
 EXPOSE 8000
-
-# Copy over the binary artifact
-COPY --from=builder /build/booklibrary-api /
-
-# Copy configuration from builder
-COPY --from=builder /etc/nsswitch.conf.min /etc/nsswitch.conf
-COPY --from=builder /etc/passwd.min /etc/passwd
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-
-USER nobody
-
-ENTRYPOINT ["/booklibrary-api"]
+COPY --from=build /out/booklibrary-api ./
+ENTRYPOINT ["./booklibrary-api"]
