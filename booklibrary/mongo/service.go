@@ -5,6 +5,8 @@ import (
 	"errors"
 	"time"
 
+	"log/slog"
+
 	"github.com/joergjo/go-samples/booklibrary"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -14,7 +16,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"golang.org/x/exp/slog"
 )
 
 // MongoCollectionStore stores Book instances in a MongoDB collection.

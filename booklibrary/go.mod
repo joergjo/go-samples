@@ -1,13 +1,12 @@
 module github.com/joergjo/go-samples/booklibrary
 
-go 1.19
+go 1.21
 
 require (
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/google/go-cmp v0.5.9
 	github.com/prometheus/client_golang v1.16.0
-	go.mongodb.org/mongo-driver v1.12.0
-	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
+	go.mongodb.org/mongo-driver v1.12.1
 )
 
 require (

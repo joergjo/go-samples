@@ -12,9 +12,10 @@ import (
 	"syscall"
 	"time"
 
+	"log/slog"
+
 	"github.com/joergjo/go-samples/booklibrary"
 	"github.com/joergjo/go-samples/booklibrary/mongo"
-	"golang.org/x/exp/slog"
 )
 
 type appConfig struct {
