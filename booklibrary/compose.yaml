@@ -14,7 +14,7 @@ services:
 
   booklibrary-api:
     profiles: ["all"]
-    image: booklibrary-go:${TAG:-latest}
+    image: booklibrary-api:${TAG:-latest}
     build:
       context: .
       dockerfile: ${DOCKERFILE:-Dockerfile}
