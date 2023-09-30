@@ -1,4 +1,4 @@
-package booklibrary
+package log
 
 const (
 	ErrorKey    = "error"

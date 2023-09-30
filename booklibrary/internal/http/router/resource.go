@@ -1,4 +1,4 @@
-package booklibrary
+package router
 
 import (
 	"encoding/json"
@@ -12,9 +12,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/joergjo/go-samples/booklibrary/internal/log"
+	"github.com/joergjo/go-samples/booklibrary/internal/model"
 )
 
-func Routes(crud CrudService) chi.Router {
+func NewResource(crud model.CrudService) chi.Router {
 	rs := Resource{crud: crud}
 	r := chi.NewRouter()
 	r.Use(middleware.AllowContentType("application/json"))
@@ -29,7 +31,7 @@ func Routes(crud CrudService) chi.Router {
 }
 
 type Resource struct {
-	crud CrudService
+	crud model.CrudService
 }
 
 func (rs Resource) List(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +44,7 @@ func (rs Resource) List(w http.ResponseWriter, r *http.Request) {
 
 	all, err := rs.crud.List(r.Context(), limit)
 	if err != nil {
-		slog.Error("database access", ErrorKey, err)
+		slog.Error("database access", log.ErrorKey, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		slog.Debug(
 			"handler complete",
@@ -66,7 +68,7 @@ func (rs Resource) Get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	book, err := rs.crud.Get(r.Context(), id)
 	if err != nil {
-		if errors.Is(err, ErrInvalidID) {
+		if errors.Is(err, model.ErrInvalidID) {
 			slog.Info("invalid ID", slog.String("id", id))
 			http.NotFound(w, r)
 			slog.Debug(
@@ -77,7 +79,7 @@ func (rs Resource) Get(w http.ResponseWriter, r *http.Request) {
 					slog.String("method", "Get")))
 			return
 		}
-		if errors.Is(err, ErrNotFound) {
+		if errors.Is(err, model.ErrNotFound) {
 			slog.Info("book not found", slog.String("id", id))
 			http.NotFound(w, r)
 			slog.Debug(
@@ -88,7 +90,7 @@ func (rs Resource) Get(w http.ResponseWriter, r *http.Request) {
 					slog.String("method", "Get")))
 			return
 		}
-		slog.Error("database access", ErrorKey, err)
+		slog.Error("database access", log.ErrorKey, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		slog.Debug(
 			"handler complete",
@@ -110,10 +112,10 @@ func (rs Resource) Get(w http.ResponseWriter, r *http.Request) {
 
 func (rs Resource) Create(w http.ResponseWriter, r *http.Request) {
 	// Unmarshal JSON to domain object
-	var book Book
+	var book model.Book
 	err := bind(r, &book)
 	if err != nil {
-		slog.Error("binding request payload", ErrorKey, err)
+		slog.Error("binding request payload", log.ErrorKey, err)
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		slog.Debug(
 			"handler complete",
@@ -128,7 +130,7 @@ func (rs Resource) Create(w http.ResponseWriter, r *http.Request) {
 	// Add to storage
 	added, err := rs.crud.Add(r.Context(), book)
 	if err != nil {
-		slog.Error("adding book to database", ErrorKey, err)
+		slog.Error("adding book to database", log.ErrorKey, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		slog.Debug(
 			"handler complete",
@@ -155,10 +157,10 @@ func (rs Resource) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rs Resource) Update(w http.ResponseWriter, r *http.Request) {
-	var book Book
+	var book model.Book
 	err := bind(r, &book)
 	if err != nil {
-		slog.Error("binding request payload", ErrorKey, err)
+		slog.Error("binding request payload", log.ErrorKey, err)
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		slog.Debug(
 			"handler complete",
@@ -173,7 +175,7 @@ func (rs Resource) Update(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	updated, err := rs.crud.Update(r.Context(), id, book)
 	if err != nil {
-		if errors.Is(err, ErrInvalidID) || errors.Is(err, ErrNotFound) {
+		if errors.Is(err, model.ErrInvalidID) || errors.Is(err, model.ErrNotFound) {
 			slog.Info("book not found", slog.String("id", id))
 			http.NotFound(w, r)
 			slog.Debug(
@@ -184,7 +186,7 @@ func (rs Resource) Update(w http.ResponseWriter, r *http.Request) {
 					slog.String("method", "Update")))
 			return
 		}
-		slog.Error("database access", ErrorKey, err)
+		slog.Error("database access", log.ErrorKey, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		slog.Debug(
 			"handler complete",
@@ -207,7 +209,7 @@ func (rs Resource) Update(w http.ResponseWriter, r *http.Request) {
 func (rs Resource) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if _, err := rs.crud.Remove(r.Context(), id); err != nil {
-		if errors.Is(err, ErrInvalidID) || errors.Is(err, ErrNotFound) {
+		if errors.Is(err, model.ErrInvalidID) || errors.Is(err, model.ErrNotFound) {
 			slog.Info("book not found", slog.String("id", id))
 			http.NotFound(w, r)
 			slog.Debug(
@@ -216,7 +218,7 @@ func (rs Resource) Delete(w http.ResponseWriter, r *http.Request) {
 				slog.Group("handler", slog.String("resource", "Book"), slog.String("method", "Delete")))
 			return
 		}
-		slog.Error("database access", ErrorKey, err)
+		slog.Error("database access", log.ErrorKey, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -236,7 +238,7 @@ type header struct {
 func respond(w http.ResponseWriter, data any, status int, headers ...header) {
 	b, err := json.Marshal(data)
 	if err != nil {
-		slog.Error("encoding response", ErrorKey, err, slog.Any("data", data))
+		slog.Error("encoding response", log.ErrorKey, err, slog.Any("data", data))
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}

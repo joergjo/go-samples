@@ -1,4 +1,4 @@
-package booklibrary
+package router
 
 import (
 	"context"
@@ -8,15 +8,16 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/joergjo/go-samples/booklibrary/internal/model"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func NewMux(crud CrudService) *chi.Mux {
+func NewMux(crud model.CrudService) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.StripSlashes)
 	r.Use(middleware.Heartbeat("/healthz/live"))
 	r.Method(http.MethodGet, "/metrics", promhttp.Handler())
-	r.Mount("/api/books", Routes(crud))
+	r.Mount("/api/books", NewResource(crud))
 	r.Get("/healthz/ready", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 		defer cancel()

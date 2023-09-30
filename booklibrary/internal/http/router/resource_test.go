@@ -1,4 +1,4 @@
-package booklibrary_test
+package router_test
 
 import (
 	"bytes"
@@ -12,46 +12,47 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/joergjo/go-samples/booklibrary"
+	"github.com/joergjo/go-samples/booklibrary/internal/http/router"
+	"github.com/joergjo/go-samples/booklibrary/internal/model"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 const applicationJSON = "application/json"
 
 type crudStub struct {
-	ListFn   func(ctx context.Context, limit int) ([]booklibrary.Book, error)
-	GetFn    func(ctx context.Context, id string) (booklibrary.Book, error)
-	AddFn    func(ctx context.Context, book booklibrary.Book) (booklibrary.Book, error)
-	UpdateFn func(ctx context.Context, id string, book booklibrary.Book) (booklibrary.Book, error)
-	RemoveFn func(ctx context.Context, id string) (booklibrary.Book, error)
+	ListFn   func(ctx context.Context, limit int) ([]model.Book, error)
+	GetFn    func(ctx context.Context, id string) (model.Book, error)
+	AddFn    func(ctx context.Context, book model.Book) (model.Book, error)
+	UpdateFn func(ctx context.Context, id string, model model.Book) (model.Book, error)
+	RemoveFn func(ctx context.Context, id string) (model.Book, error)
 	PingFn   func(ctx context.Context) error
 }
 
 // Compile-time check to verify we implement Storage
-var _ booklibrary.CrudService = (*crudStub)(nil)
+var _ model.CrudService = (*crudStub)(nil)
 
 // All finds all books
-func (cs *crudStub) List(ctx context.Context, limit int) ([]booklibrary.Book, error) {
+func (cs *crudStub) List(ctx context.Context, limit int) ([]model.Book, error) {
 	return cs.ListFn(ctx, limit)
 }
 
 // Book finds a specific book
-func (cs *crudStub) Get(ctx context.Context, id string) (booklibrary.Book, error) {
+func (cs *crudStub) Get(ctx context.Context, id string) (model.Book, error) {
 	return cs.GetFn(ctx, id)
 }
 
 // Add ads a new Book
-func (cs *crudStub) Add(ctx context.Context, book booklibrary.Book) (booklibrary.Book, error) {
+func (cs *crudStub) Add(ctx context.Context, book model.Book) (model.Book, error) {
 	return cs.AddFn(ctx, book)
 }
 
 // Update updates an existing Book
-func (cs *crudStub) Update(ctx context.Context, id string, book booklibrary.Book) (booklibrary.Book, error) {
+func (cs *crudStub) Update(ctx context.Context, id string, book model.Book) (model.Book, error) {
 	return cs.UpdateFn(ctx, id, book)
 }
 
 // Remove removes an existing Book
-func (s *crudStub) Remove(ctx context.Context, id string) (booklibrary.Book, error) {
+func (s *crudStub) Remove(ctx context.Context, id string) (model.Book, error) {
 	return s.RemoveFn(ctx, id)
 }
 
@@ -59,16 +60,16 @@ func (s *crudStub) Ping(ctx context.Context) error {
 	return nil
 }
 
-func testData(count int) map[string]booklibrary.Book {
-	m := make(map[string]booklibrary.Book, count)
+func testData(count int) map[string]model.Book {
+	m := make(map[string]model.Book, count)
 	for i := 0; i < count; i++ {
 		id := primitive.NewObjectID().Hex()
-		m[id] = booklibrary.Book{
+		m[id] = model.Book{
 			ID:          id,
 			Author:      "John Doe",
 			Title:       fmt.Sprintf("Unit Testing, Volume %d", i),
 			ReleaseDate: time.Now(),
-			Keywords:    []booklibrary.Keyword{{Value: "Go"}, {Value: "Test"}},
+			Keywords:    []model.Keyword{{Value: "Go"}, {Value: "Test"}},
 		}
 	}
 	return m
@@ -77,21 +78,21 @@ func testData(count int) map[string]booklibrary.Book {
 func TestListBooks(t *testing.T) {
 	tests := []struct {
 		name  string
-		in    map[string]booklibrary.Book
+		in    map[string]model.Book
 		limit int
 		want  int
 	}{
 		{"get_multiple_books", testData(5), -1, 5},
 		{"get_first_book", testData(5), 1, 1},
 		{"get_multiple_books_with_limit", testData(10), 50, 10},
-		{"get_empty_collection", make(map[string]booklibrary.Book), -1, 0},
+		{"get_empty_collection", make(map[string]model.Book), -1, 0},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			crud := crudStub{}
-			crud.ListFn = func(_ context.Context, _ int) ([]booklibrary.Book, error) {
+			crud.ListFn = func(_ context.Context, _ int) ([]model.Book, error) {
 				i := 0
-				bb := make([]booklibrary.Book, tc.want)
+				bb := make([]model.Book, tc.want)
 				for _, b := range tc.in {
 					if i == tc.want {
 						break
@@ -101,7 +102,7 @@ func TestListBooks(t *testing.T) {
 				}
 				return bb, nil
 			}
-			router := booklibrary.Routes(&crud)
+			router := router.NewResource(&crud)
 			path := "/"
 			if tc.limit != -1 {
 				path = fmt.Sprintf("%s?limit=%d", path, tc.limit)
@@ -124,7 +125,7 @@ func TestListBooks(t *testing.T) {
 				t.Fatalf("Error reading response body: %v", err)
 			}
 
-			var books []*booklibrary.Book
+			var books []*model.Book
 			if err := json.Unmarshal(body, &books); err != nil {
 				t.Fatalf("Error unmarshaling JSON response: %v", err)
 			}
@@ -148,17 +149,17 @@ func TestGetBook(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			crud := crudStub{}
-			b := booklibrary.Book{
+			b := model.Book{
 				ID: "000000000000000000000001",
 			}
-			crud.GetFn = func(_ context.Context, id string) (booklibrary.Book, error) {
+			crud.GetFn = func(_ context.Context, id string) (model.Book, error) {
 				if id != "000000000000000000000001" {
-					return booklibrary.Book{}, booklibrary.ErrNotFound
+					return model.Book{}, model.ErrNotFound
 				}
 				return b, nil
 			}
 
-			router := booklibrary.Routes(&crud)
+			router := router.NewResource(&crud)
 			r := httptest.NewRequest(http.MethodGet, "/"+tc.in, nil)
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, r)
@@ -179,7 +180,7 @@ func TestGetBook(t *testing.T) {
 				t.Fatalf("Error reading response body: %v", err)
 			}
 
-			var book booklibrary.Book
+			var book model.Book
 			if err := json.Unmarshal(body, &book); err != nil {
 				t.Fatalf("Error unmarshaling JSON response: %v", err)
 			}
@@ -203,17 +204,17 @@ func TestDeleteBook(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			crud := crudStub{}
-			b := booklibrary.Book{
+			b := model.Book{
 				ID: "000000000000000000000001",
 			}
-			crud.RemoveFn = func(_ context.Context, id string) (booklibrary.Book, error) {
+			crud.RemoveFn = func(_ context.Context, id string) (model.Book, error) {
 				if id != "000000000000000000000001" {
-					return booklibrary.Book{}, booklibrary.ErrNotFound
+					return model.Book{}, model.ErrNotFound
 				}
 				return b, nil
 			}
 
-			router := booklibrary.Routes(&crud)
+			router := router.NewResource(&crud)
 			r := httptest.NewRequest(http.MethodDelete, "/"+tc.in, nil)
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, r)
@@ -227,17 +228,17 @@ func TestDeleteBook(t *testing.T) {
 
 func TestAddBook(t *testing.T) {
 	crud := crudStub{}
-	crud.AddFn = func(_ context.Context, book booklibrary.Book) (booklibrary.Book, error) {
+	crud.AddFn = func(_ context.Context, book model.Book) (model.Book, error) {
 		book.ID = primitive.NewObjectID().Hex()
 		return book, nil
 	}
 
-	router := booklibrary.Routes(&crud)
-	book := booklibrary.Book{
+	router := router.NewResource(&crud)
+	book := model.Book{
 		Author:      "Jörg Jooss",
 		Title:       "Go Testing in Action",
 		ReleaseDate: time.Now(),
-		Keywords:    []booklibrary.Keyword{{Value: "Golang"}, {Value: "Testing"}},
+		Keywords:    []model.Keyword{{Value: "Golang"}, {Value: "Testing"}},
 	}
 	body, err := json.Marshal(&book)
 	if err != nil {
@@ -263,7 +264,7 @@ func TestAddBook(t *testing.T) {
 		t.Fatalf("Error reading response body: %v", err)
 	}
 
-	book = booklibrary.Book{}
+	book = model.Book{}
 	if err := json.Unmarshal(body, &book); err != nil {
 		t.Fatalf("Error unmarshaling JSON response: %v", err)
 	}
@@ -291,26 +292,26 @@ func TestUpdateBook(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			crud := crudStub{}
-			crud.UpdateFn = func(_ context.Context, id string, book booklibrary.Book) (booklibrary.Book, error) {
+			crud.UpdateFn = func(_ context.Context, id string, book model.Book) (model.Book, error) {
 				if id != "000000000000000000000003" {
-					return booklibrary.Book{}, booklibrary.ErrNotFound
+					return model.Book{}, model.ErrNotFound
 				}
 				return book, nil
 			}
 
-			book := booklibrary.Book{
+			book := model.Book{
 				ID:          tc.in,
 				Author:      "Jörg Jooss",
 				Title:       "Go Testing in 24 Minutes",
 				ReleaseDate: time.Date(2021, 1, 10, 0, 0, 0, 0, time.UTC),
-				Keywords:    []booklibrary.Keyword{{Value: "Golang"}, {Value: "Testing"}},
+				Keywords:    []model.Keyword{{Value: "Golang"}, {Value: "Testing"}},
 			}
 			body, err := json.Marshal(book)
 			if err != nil {
 				t.Fatalf("Error marshaling Book: %v.", err)
 			}
 
-			router := booklibrary.Routes(&crud)
+			router := router.NewResource(&crud)
 			r := httptest.NewRequest(http.MethodPut, "/"+book.ID, bytes.NewBuffer(body))
 			r.Header.Set("Content-Type", applicationJSON)
 			w := httptest.NewRecorder()
@@ -335,7 +336,7 @@ func TestUpdateBook(t *testing.T) {
 				t.Fatalf("Error reading response body: %v", err)
 			}
 
-			got := &booklibrary.Book{}
+			got := &model.Book{}
 			if err := json.Unmarshal(body, got); err != nil {
 				t.Fatalf("Error unmarshaling JSON response: %v", err)
 			}

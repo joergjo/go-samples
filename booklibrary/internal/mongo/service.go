@@ -7,7 +7,8 @@ import (
 
 	"log/slog"
 
-	"github.com/joergjo/go-samples/booklibrary"
+	"github.com/joergjo/go-samples/booklibrary/internal/log"
+	"github.com/joergjo/go-samples/booklibrary/internal/model"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.mongodb.org/mongo-driver/bson"
@@ -27,11 +28,11 @@ type CrudService struct {
 
 var (
 	// Compile-time check to verify we implement Storage
-	_                  booklibrary.CrudService = (*CrudService)(nil)
-	timeout                                    = 2 * time.Second
-	startupTimeout                             = 10 * time.Second
-	connectionIDKey                            = "connectionID"
-	heartbeatSucceeded                         = promauto.NewCounter(prometheus.CounterOpts{
+	_                  model.CrudService = (*CrudService)(nil)
+	timeout                              = 2 * time.Second
+	startupTimeout                       = 10 * time.Second
+	connectionIDKey                      = "connectionID"
+	heartbeatSucceeded                   = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "booklibrary_mongodb_heartbeat_succeeded_total",
 		Help: "The total number of successful MongoDB server heartbeats",
 	})
@@ -45,7 +46,7 @@ func newMonitor() *event.ServerMonitor {
 	return &event.ServerMonitor{
 		ServerHeartbeatFailed: func(evt *event.ServerHeartbeatFailedEvent) {
 			heartbeatFailed.Inc()
-			slog.Warn("MongoDB server heartbeat failed", booklibrary.ErrorKey, evt.Failure, connectionIDKey, evt.ConnectionID)
+			slog.Warn("MongoDB server heartbeat failed", log.ErrorKey, evt.Failure, connectionIDKey, evt.ConnectionID)
 		},
 		ServerHeartbeatSucceeded: func(evt *event.ServerHeartbeatSucceededEvent) {
 			heartbeatSucceeded.Inc()
@@ -62,19 +63,19 @@ func NewCrudService(mongoURI, database, collection string) (*CrudService, error)
 	// Set client options
 	opts := options.Client().ApplyURI(mongoURI).SetServerMonitor(newMonitor())
 	if err := opts.Validate(); err != nil {
-		slog.Error("validating client options", booklibrary.ErrorKey, err, slog.Any("options", opts))
+		slog.Error("validating client options", log.ErrorKey, err, slog.Any("options", opts))
 		return nil, err
 	}
 
 	// Connect to MongoDB
 	client, err := mongo.Connect(ctx, opts)
 	if err != nil {
-		slog.Error("connecting to MongoDB", booklibrary.ErrorKey, err)
+		slog.Error("connecting to MongoDB", log.ErrorKey, err)
 		return nil, err
 	}
 
 	if err := client.Ping(ctx, nil); err != nil {
-		slog.Error("pinging MongoDB", booklibrary.ErrorKey, err)
+		slog.Error("pinging MongoDB", log.ErrorKey, err)
 		return nil, err
 	}
 
@@ -89,7 +90,7 @@ func NewCrudService(mongoURI, database, collection string) (*CrudService, error)
 }
 
 // All returns all books up to 'limit' instances.
-func (cs *CrudService) List(ctx context.Context, limit int) ([]booklibrary.Book, error) {
+func (cs *CrudService) List(ctx context.Context, limit int) ([]model.Book, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	books, err := cs.find(ctx, bson.M{}, limit)
@@ -100,35 +101,35 @@ func (cs *CrudService) List(ctx context.Context, limit int) ([]booklibrary.Book,
 }
 
 // Book finds a book by its ID.
-func (cs *CrudService) Get(ctx context.Context, id string) (booklibrary.Book, error) {
+func (cs *CrudService) Get(ctx context.Context, id string) (model.Book, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		slog.Error("parsing ObjectID", booklibrary.ErrorKey, err, slog.String("id", id))
-		return booklibrary.Book{}, booklibrary.ErrInvalidID
+		slog.Error("parsing ObjectID", log.ErrorKey, err, slog.String("id", id))
+		return model.Book{}, model.ErrInvalidID
 	}
 
 	filter := bson.M{"_id": oid}
 	books, err := cs.find(ctx, filter, 1)
 	if err != nil {
-		return booklibrary.Book{}, err
+		return model.Book{}, err
 	}
 	if len(books) == 0 {
-		return booklibrary.Book{}, booklibrary.ErrNotFound
+		return model.Book{}, model.ErrNotFound
 	}
 	return books[0], nil
 }
 
 // Add adds a new book
-func (cs *CrudService) Add(ctx context.Context, book booklibrary.Book) (booklibrary.Book, error) {
+func (cs *CrudService) Add(ctx context.Context, book model.Book) (model.Book, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	res, err := cs.collection.InsertOne(ctx, book)
 	if err != nil {
-		slog.Error("inserting document", booklibrary.ErrorKey, err)
-		return booklibrary.Book{}, err
+		slog.Error("inserting document", log.ErrorKey, err)
+		return model.Book{}, err
 	}
 	oid, ok := res.InsertedID.(primitive.ObjectID)
 	if !ok {
@@ -139,11 +140,11 @@ func (cs *CrudService) Add(ctx context.Context, book booklibrary.Book) (booklibr
 }
 
 // Update a book for specific ID
-func (cs *CrudService) Update(ctx context.Context, id string, book booklibrary.Book) (booklibrary.Book, error) {
+func (cs *CrudService) Update(ctx context.Context, id string, book model.Book) (model.Book, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		slog.Error("parsing ObjectID", booklibrary.ErrorKey, err, booklibrary.IdKey, id)
-		return booklibrary.Book{}, booklibrary.ErrInvalidID
+		slog.Error("parsing ObjectID", log.ErrorKey, err, log.IdKey, id)
+		return model.Book{}, model.ErrInvalidID
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)
@@ -158,28 +159,28 @@ func (cs *CrudService) Update(ctx context.Context, id string, book booklibrary.B
 		"keywords":    book.Keywords}}
 	res := cs.collection.FindOneAndUpdate(ctx, filter, update, options)
 	if err := res.Err(); err != nil {
-		slog.Error("updating document", booklibrary.ErrorKey, err, booklibrary.IdKey, id)
+		slog.Error("updating document", log.ErrorKey, err, log.IdKey, id)
 		if !errors.Is(err, mongo.ErrNoDocuments) {
-			return booklibrary.Book{}, err
+			return model.Book{}, err
 		}
-		return booklibrary.Book{}, booklibrary.ErrNotFound
+		return model.Book{}, model.ErrNotFound
 	}
 
-	var b booklibrary.Book
+	var b model.Book
 	err = res.Decode(&b)
 	if err != nil {
-		slog.Error("decoding document", booklibrary.ErrorKey, err)
-		return booklibrary.Book{}, err
+		slog.Error("decoding document", log.ErrorKey, err)
+		return model.Book{}, err
 	}
 	return b, nil
 }
 
 // Remove deletes a book from the database
-func (cs *CrudService) Remove(ctx context.Context, id string) (booklibrary.Book, error) {
+func (cs *CrudService) Remove(ctx context.Context, id string) (model.Book, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		slog.Error("parsing ObjectID", booklibrary.ErrorKey, err, booklibrary.IdKey, id)
-		return booklibrary.Book{}, booklibrary.ErrInvalidID
+		slog.Error("parsing ObjectID", log.ErrorKey, err, log.IdKey, id)
+		return model.Book{}, model.ErrInvalidID
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)
@@ -188,50 +189,50 @@ func (cs *CrudService) Remove(ctx context.Context, id string) (booklibrary.Book,
 	filter := bson.M{"_id": oid}
 	res := cs.collection.FindOneAndDelete(ctx, filter)
 	if err := res.Err(); err != nil {
-		slog.Error("deleting document", booklibrary.ErrorKey, err, booklibrary.IdKey, id)
+		slog.Error("deleting document", log.ErrorKey, err, log.IdKey, id)
 		if !errors.Is(err, mongo.ErrNoDocuments) {
-			return booklibrary.Book{}, err
+			return model.Book{}, err
 		}
-		return booklibrary.Book{}, booklibrary.ErrNotFound
+		return model.Book{}, model.ErrNotFound
 	}
 
-	var b booklibrary.Book
+	var b model.Book
 	err = res.Decode(&b)
 	if err != nil {
-		slog.Error("decoding document", booklibrary.ErrorKey, err)
-		return booklibrary.Book{}, err
+		slog.Error("decoding document", log.ErrorKey, err)
+		return model.Book{}, err
 	}
 	return b, nil
 }
 
-func (cs *CrudService) find(ctx context.Context, filter primitive.M, limit int) ([]booklibrary.Book, error) {
+func (cs *CrudService) find(ctx context.Context, filter primitive.M, limit int) ([]model.Book, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	findOptions := options.Find().SetLimit(int64(limit))
 	cur, err := cs.collection.Find(ctx, filter, findOptions)
 	if err != nil {
-		slog.Error("finding document(s)", booklibrary.ErrorKey, err)
+		slog.Error("finding document(s)", log.ErrorKey, err)
 		return nil, err
 	}
 	defer cur.Close(ctx)
 
-	books := []booklibrary.Book{}
+	books := []model.Book{}
 	for cur.Next(ctx) {
-		var b booklibrary.Book
+		var b model.Book
 		err := cur.Decode(&b)
 		if err != nil {
 			if errors.Is(err, mongo.ErrNoDocuments) {
-				return []booklibrary.Book{}, nil
+				return []model.Book{}, nil
 			}
-			slog.Error("decoding document", booklibrary.ErrorKey, err)
+			slog.Error("decoding document", log.ErrorKey, err)
 			break
 		}
 		books = append(books, b)
 	}
 
 	if err := cur.Err(); err != nil {
-		slog.Error("iterating over cursor", booklibrary.ErrorKey, err)
+		slog.Error("iterating over cursor", log.ErrorKey, err)
 		return nil, err
 	}
 	return books, nil

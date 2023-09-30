@@ -1,4 +1,4 @@
-package booklibrary_test
+package router_test
 
 import (
 	"context"
@@ -6,7 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/joergjo/go-samples/booklibrary"
+	"github.com/joergjo/go-samples/booklibrary/internal/http/router"
+	"github.com/joergjo/go-samples/booklibrary/internal/model"
 )
 
 func TestSystemEndpoints(t *testing.T) {
@@ -34,10 +35,10 @@ func TestSystemEndpoints(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			crud := crudStub{}
-			crud.GetFn = func(_ context.Context, id string) (booklibrary.Book, error) {
-				return booklibrary.Book{}, nil
+			crud.GetFn = func(_ context.Context, id string) (model.Book, error) {
+				return model.Book{}, nil
 			}
-			router := booklibrary.NewMux(&crud)
+			router := router.NewMux(&crud)
 			ts := httptest.NewServer(router)
 			defer ts.Close()
 

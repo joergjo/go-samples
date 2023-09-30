@@ -1,4 +1,4 @@
-package booklibrary
+package model
 
 import (
 	"encoding/json"
