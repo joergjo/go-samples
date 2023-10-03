@@ -9,32 +9,40 @@ tasks:
     desc: Runs the tests
     cmds:
       - go test -v ./...
-  docker-build:
+  
+  docker:build:
     desc: Builds the appliation's Docker image
     cmds:
-      - docker compose --profile all build
-  docker-dev-up:
-    desc: Run MongoDB container for local development
-    cmds:
-      - docker compose up -d
-  docker-dev-down:
-    desc: Shuts down MongoDB container for local development
-    cmds:
-      - docker compose down 
-  docker-up:
-    desc: Runs the application and MongoDB containers 
+      - docker compose --profile all build  
+
+  docker:up:
+    desc: Runs the application container and MongoDB container
     cmds:
       - docker compose --profile all up -d
-  docker-down:
+  
+  docker:down:
     desc: Shuts down the application and MongoDB containers 
     cmds:
       - docker compose --profile all down
-  docker-logs:
-    desc: Streams containers stdout/stderr (blocks, CTRL+C to exit)
+  
+  docker:logs:
+    desc: Streams all containers stdout/stderr (blocks, CTRL+C to exit)
     cmds:
       - docker compose --profile all logs --follow 
     ignore_error: true
-  mongosh:
-    desc: Connects to the MongoDB container
+
+  mongo:up:
+    desc: Run MongoDB container for local development
+    cmds:
+      - docker compose up -d
+  
+  mongo:down:
+    desc: Shuts down MongoDB container for local development
+    cmds:
+      - docker compose down 
+
+  mongo:sh:
+    desc: Connects to the MongoDB container with mongosh
+    interactive: true
     cmds:
       - docker compose exec booklibrary-db mongosh
