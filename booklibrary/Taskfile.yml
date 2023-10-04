@@ -1,6 +1,11 @@
 version: '3'
 
 tasks:
+  run:
+    desc: Runs the application (assumes MongoDB is running already)
+    cmds:
+      - go run cmd/booklibrary-api/main.go -debug
+
   build:
     desc: Builds the application binary
     cmds:

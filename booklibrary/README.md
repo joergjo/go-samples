@@ -2,9 +2,10 @@
 
 ## About
 This is a [Go](https://golang.org/) port of [Addy Osmani's Book Library sample for
-Backbone.js and Node.js](https://addyosmani.com/backbone-fundamentals/#exercise-2-book-library---your-first-restful-backbone.js-app). 
+Backbone.js and Node.js](https://addyosmani.com/backbone-fundamentals/#exercise-2-book-library---your-first-restful-backbone.js-app). It uses
+[slog](https://pkg.go.dev/log/slog) and exposes a Prometheus endpoint to scrape metrics.
 
-> Note: This project only contains the Web API, but not the Backbone SPA or any other client application.
+> Note: This project only contains the Web API, but not the original Backbone SPA or any other client application.
 
 ## Useful commands
 Here is a list of useful commands to work this sample. You can also use the included [`Task file`](./Taskfile.yml) to run them if you have [Task](https://taskfile.dev) installed.
@@ -17,8 +18,17 @@ go build -o booklibrary-api cmd/booklibrary-api/main.go
 # Using Task
 task build
 ```
+### Running (without explicit build)
+```bash
+go run cmd/booklibrary-api/main.go
 
-### Run tests
+# Using Task
+task run
+```
+
+
+
+### Runing tests
 
 ```bash
 go test -v ./...
