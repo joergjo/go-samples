@@ -22,8 +22,6 @@ var (
 		[]string{"code", "method"},
 	)
 
-	// duration is partitioned by the HTTP method and handler. It uses custom
-	// buckets based on the expected request duration.
 	duration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "booklibrary_request_duration_seconds",
@@ -33,8 +31,6 @@ var (
 		[]string{"handler", "method"},
 	)
 
-	// responseSize has no labels, making it a zero-dimensional
-	// ObserverVec.
 	responseSize = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "booklibrary_response_size_bytes",
@@ -45,12 +41,14 @@ var (
 	)
 )
 
-func instrument(handlerFunc http.HandlerFunc, handlerName string) http.Handler {
-	return promhttp.InstrumentHandlerInFlight(inFlightGauge,
-		promhttp.InstrumentHandlerDuration(duration.MustCurryWith(prometheus.Labels{"handler": handlerName}),
-			promhttp.InstrumentHandlerCounter(counter,
-				promhttp.InstrumentHandlerResponseSize(responseSize, handlerFunc),
+func metricsFor(name string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return promhttp.InstrumentHandlerInFlight(inFlightGauge,
+			promhttp.InstrumentHandlerDuration(duration.MustCurryWith(prometheus.Labels{"handler": name}),
+				promhttp.InstrumentHandlerCounter(counter,
+					promhttp.InstrumentHandlerResponseSize(responseSize, next),
+				),
 			),
-		),
-	)
+		)
+	}
 }
