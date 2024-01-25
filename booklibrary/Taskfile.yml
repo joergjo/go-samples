@@ -10,13 +10,14 @@ tasks:
     desc: Builds the application binary
     cmds:
       - go build -o booklibrary-api cmd/booklibrary-api/main.go
+ 
   test:
     desc: Runs the tests
     cmds:
       - go test -v ./...
   
   docker:build:
-    desc: Builds the appliation's Docker image
+    desc: Builds the application's Docker image
     cmds:
       - docker compose --profile all build  
 
