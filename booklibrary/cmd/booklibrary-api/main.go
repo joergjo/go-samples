@@ -41,6 +41,7 @@ func main() {
 	slog.Info(fmt.Sprintf("server starting, listening on 0.0.0.0:%d", s.Port))
 	if err = srv.ListenAndServe(); err != http.ErrServerClosed {
 		slog.Error("server error", log.ErrorKey, err)
+		os.Exit(1)
 	}
 	slog.Info("waiting for shut down to complete")
 	<-done
