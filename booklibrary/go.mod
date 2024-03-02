@@ -3,7 +3,7 @@ module github.com/joergjo/go-samples/booklibrary
 go 1.21.0
 
 require (
-	github.com/go-chi/chi/v5 v5.0.11
+	github.com/go-chi/chi/v5 v5.0.12
 	github.com/google/go-cmp v0.6.0
 	github.com/prometheus/client_golang v1.18.0
 	go.mongodb.org/mongo-driver v1.14.0
