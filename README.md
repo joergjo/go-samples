@@ -1,4 +1,4 @@
-# A collection of Go based applications for fun and non-profit application
+# A collection of Go based applications for fun and non-profit
 
 ![Gopher](https://github.com/joergjo/go-samples/assets/1625465/e2c80e13-4057-43ae-9027-0eb96b0f011f)
 
