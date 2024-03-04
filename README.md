@@ -17,4 +17,4 @@ you're new to Go will they help you getting started quickly without having to kn
    Kubernetes will fall out of support. `kubeup` allows you to send forward these events by email, log them, and provide your own event handling logic. 
 
    Technically, you can achieve the same with an Azure Function or a Logic App,
-   but being able to run a 10 MB container image on a [Azure Container App with scale-to-zero](https://learn.microsoft.com/en-us/azure/container-apps/scale-app?pivots=azure-cli#http) to me is viable alternative.     
+   but being able to run a 10 MB container image on a [Azure Container App with scale-to-zero](https://learn.microsoft.com/en-us/azure/container-apps/scale-app?pivots=azure-cli#http) to me is a viable alternative.     
