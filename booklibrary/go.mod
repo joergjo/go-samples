@@ -5,8 +5,8 @@ go 1.21.0
 require (
 	github.com/go-chi/chi/v5 v5.0.12
 	github.com/google/go-cmp v0.6.0
-	github.com/prometheus/client_golang v1.19.0
-	go.mongodb.org/mongo-driver v1.14.0
+	github.com/prometheus/client_golang v1.19.1
+	go.mongodb.org/mongo-driver v1.15.0
 )
 
 require (
@@ -24,7 +24,7 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
 	golang.org/x/crypto v0.17.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
-	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/sys v0.17.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	google.golang.org/protobuf v1.32.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 )
