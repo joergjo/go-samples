@@ -50,7 +50,7 @@ func main() {
 
 func configure() config.Settings {
 	var s config.Settings
-	mongoURI := config.GetEnvString("BOOKLIBRARY_MONGOURI", "mongodb://localhost")
+	mongoURI := config.GetEnvString("BOOKLIBRARY_MONGOURI", "mongodb://localhost/?timeoutMS=0")
 	port := config.GetEnvInt("BOOKLIBRARY_PORT", 8000)
 	db := config.GetEnvString("BOOKLIBRARY_DB", "library_database")
 	coll := config.GetEnvString("BOOKLIBRARY_COLLECTION", "books")
