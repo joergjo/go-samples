@@ -1,6 +1,12 @@
 version: '3'
 
 tasks:
+  default:
+    desc: Runs tests and builds the application
+    deps:
+      - build
+      - test
+      
   run:
     desc: Runs the application (assumes MongoDB is running already)
     cmds:
