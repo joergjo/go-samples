@@ -19,7 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-// MongoCollectionStore stores Book instances in a MongoDB collection.
+// CrudService stores Book instances in a MongoDB collection.
 type CrudService struct {
 	client     *mongo.Client
 	database   *mongo.Database
@@ -55,7 +55,7 @@ func newMonitor() *event.ServerMonitor {
 	}
 }
 
-// NewStorage creates a new Storage backed by MongoDB
+// NewCrudService creates a new CRUD service for MongoDB.
 func NewCrudService(mongoURI, database, collection string) (*CrudService, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), startupTimeout)
 	defer cancel()
@@ -89,7 +89,7 @@ func NewCrudService(mongoURI, database, collection string) (*CrudService, error)
 	return &crud, nil
 }
 
-// All returns all books up to 'limit' instances.
+// All returns all books up to 'limit' instance in the collection.
 func (cs *CrudService) List(ctx context.Context, limit int) ([]model.Book, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -100,7 +100,7 @@ func (cs *CrudService) List(ctx context.Context, limit int) ([]model.Book, error
 	return books, nil
 }
 
-// Book finds a book by its ID.
+// Book finds a book by its ID in the collection.
 func (cs *CrudService) Get(ctx context.Context, id string) (model.Book, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -121,7 +121,7 @@ func (cs *CrudService) Get(ctx context.Context, id string) (model.Book, error) {
 	return books[0], nil
 }
 
-// Add adds a new book
+// Add adds a new book to the collection.
 func (cs *CrudService) Add(ctx context.Context, book model.Book) (model.Book, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -139,7 +139,7 @@ func (cs *CrudService) Add(ctx context.Context, book model.Book) (model.Book, er
 	return book, nil
 }
 
-// Update a book for specific ID
+// Update a book for specific ID in the collection.
 func (cs *CrudService) Update(ctx context.Context, id string, book model.Book) (model.Book, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -175,7 +175,7 @@ func (cs *CrudService) Update(ctx context.Context, id string, book model.Book) (
 	return b, nil
 }
 
-// Remove deletes a book from the database
+// Remove deletes a book from the collection.
 func (cs *CrudService) Remove(ctx context.Context, id string) (model.Book, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {

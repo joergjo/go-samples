@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"runtime"
 
 	"log/slog"
 
@@ -16,9 +17,21 @@ import (
 	"github.com/joergjo/go-samples/booklibrary/internal/mongo"
 )
 
+var (
+	version string
+	commit  string
+	date    string
+	builtBy string
+)
+
 func main() {
 	s := configure()
 	slog.SetDefault(log.New(os.Stdout, s.Debug))
+
+	slog.Info("booklibrary-api", "version", version, "commit", commit, "date", date, "builtBy", builtBy, "goVersion", runtime.Version())
+	if s.Debug {
+		slog.Warn("debug logging enabled")
+	}
 
 	crud, err := newCrudService(s.MongoURI, s.Db, s.Collection)
 	if err != nil {
@@ -66,11 +79,11 @@ func configure() config.Settings {
 }
 
 func newCrudService(uri, db, coll string) (*mongo.CrudService, error) {
-	slog.Debug(fmt.Sprintf("connecting to MongoDB at %q", uri))
+	slog.Debug("connecting to MongoDB", log.MongoURIKey, uri)
 	crud, err := mongo.NewCrudService(uri, db, coll)
 	if err != nil {
 		return nil, err
 	}
-	slog.Debug(fmt.Sprintf("connected to MongoDB at %q", uri))
+	slog.Debug("connected to MongoDB", log.MongoURIKey, uri)
 	return crud, nil
 }

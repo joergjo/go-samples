@@ -5,6 +5,7 @@ import (
 	"log/slog"
 )
 
+// New creates a new logger with the given writer and debug mode. This logger logs in UTC.
 func New(w io.Writer, debug bool) *slog.Logger {
 	opts := slog.HandlerOptions{
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {

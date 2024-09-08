@@ -15,6 +15,7 @@ import (
 	"github.com/joergjo/go-samples/booklibrary/internal/model"
 )
 
+// NewResource creates a new router with all endpoints offered the BookLibrary API.
 func NewResource(crud model.CrudService) chi.Router {
 	rs := Resource{crud: crud}
 	r := chi.NewRouter()
@@ -29,10 +30,12 @@ func NewResource(crud model.CrudService) chi.Router {
 	return r
 }
 
+// Resource is a RESTful representation of a book library.
 type Resource struct {
 	crud model.CrudService
 }
 
+// List returns all books in the library, limited by the query parameter limit or at most 100 if limit is not a valid integer.
 func (rs Resource) List(w http.ResponseWriter, r *http.Request) {
 	l := r.URL.Query().Get("limit")
 	limit, err := strconv.Atoi(l)
@@ -63,6 +66,8 @@ func (rs Resource) List(w http.ResponseWriter, r *http.Request) {
 			slog.String("method", "List")))
 }
 
+// Get returns a single book by its ID. If the ID is not a valid UUID or no book for this ID can be found,
+// the handler returns 404.
 func (rs Resource) Get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	book, err := rs.crud.Get(r.Context(), id)
@@ -109,6 +114,7 @@ func (rs Resource) Get(w http.ResponseWriter, r *http.Request) {
 			slog.String("method", "Get")))
 }
 
+// Create adds a new book to the library.
 func (rs Resource) Create(w http.ResponseWriter, r *http.Request) {
 	// Unmarshal JSON to domain object
 	var book model.Book
@@ -155,6 +161,7 @@ func (rs Resource) Create(w http.ResponseWriter, r *http.Request) {
 			slog.String("method", "Create")))
 }
 
+// Update replaces a book in the library with the given ID.
 func (rs Resource) Update(w http.ResponseWriter, r *http.Request) {
 	var book model.Book
 	err := bind(r, &book)
@@ -205,6 +212,7 @@ func (rs Resource) Update(w http.ResponseWriter, r *http.Request) {
 			slog.String("method", "Update")))
 }
 
+// Delete removes a book from the library by its ID.
 func (rs Resource) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if _, err := rs.crud.Remove(r.Context(), id); err != nil {

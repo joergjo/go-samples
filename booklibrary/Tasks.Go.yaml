@@ -1,0 +1,25 @@
+version: '3'
+
+tasks:
+  run:
+    desc: Runs the application
+    cmds:
+      - VERSION={{.VERSION}} COMMIT={{.COMMIT}} DATE={{.DATE}} go run cmd/booklibrary-api/main.go -debug
+    dotenv:  
+      - '.env' 
+
+  build:
+    desc: Builds the application binary
+    cmds:
+      - go build -ldflags "-s -w -X main.version={{.VERSION}} -X main.commit={{.COMMIT}} -X main.date={{.DATE}} -X main.builtBy=go" -o booklibrary-api cmd/booklibrary-api/main.go
+
+  test:
+    desc: Runs the tests
+    cmds:
+      - go test -v ./...
+
+  tidy:
+    desc: Format code and tidy go.mod
+    cmds:
+      - go fmt ./...
+      - go mod tidy -v

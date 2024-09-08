@@ -1,0 +1,24 @@
+version: '3'
+
+tasks:
+  build:
+    desc: Builds the application's container image
+    cmds:
+      - VERSION={{.VERSION}} COMMIT={{.COMMIT}} DATE={{.DATE}} docker compose --profile all build 
+
+  up:
+    desc: Runs the application and MongoDB containers
+    cmds:
+      - VERSION={{.VERSION}} COMMIT={{.COMMIT}} DATE={{.DATE}} docker compose --profile all up -d 
+
+  down:
+    desc: Shuts down the application and MongoDB containers 
+    cmds:
+      - docker compose --profile all  down
+  
+  logs:
+    desc: Streams all containers stdout/stderr (blocks, CTRL+C to exit)
+    cmds:
+      - docker compose --profile all logs --follow 
+    ignore_error: true
+

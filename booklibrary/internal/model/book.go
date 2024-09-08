@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// Book represent a book in our library
+// Book represent a book in the library.
 type Book struct {
 	ID          string    `json:"_id" bson:"_id,omitempty"`
 	Author      string    `json:"author" bson:"author"`
@@ -14,7 +14,7 @@ type Book struct {
 	Keywords    []Keyword `json:"keywords" bson:"keywords"`
 }
 
-// MarshalJSON serializes a Book with its ReleaseDate rendered as Unix time
+// MarshalJSON serializes a Book with its ReleaseDate rendered as Unix time.
 func (b Book) MarshalJSON() ([]byte, error) {
 	type Dto Book
 	return json.Marshal(struct {
@@ -26,7 +26,7 @@ func (b Book) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// UnmarshalJSON deserializes a Book with its ReleaseDate rendered as Unix time
+// UnmarshalJSON deserializes a Book with its ReleaseDate rendered as Unix time.
 func (b *Book) UnmarshalJSON(data []byte) error {
 	type Dto Book
 	dto := struct {
@@ -42,11 +42,12 @@ func (b *Book) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Keyword represents a book's topic
+// Keyword represents a book's topic.
 type Keyword struct {
 	Value string `json:"keyword" bson:"keyword"`
 }
 
+// String returns the keyword value.
 func (kw Keyword) String() string {
 	return kw.Value
 }

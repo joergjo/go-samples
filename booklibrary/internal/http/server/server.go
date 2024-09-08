@@ -14,6 +14,7 @@ import (
 	"github.com/joergjo/go-samples/booklibrary/internal/log"
 )
 
+// New creates a new HTTP server with the given handler and port.
 func New(h http.Handler, port int) *http.Server {
 	s := http.Server{
 		Addr:         fmt.Sprintf(":%d", port),
@@ -25,6 +26,7 @@ func New(h http.Handler, port int) *http.Server {
 	return &s
 }
 
+// Shutdown gracefully shuts down the server with a timeout of 30 seconds.
 func Shutdown(ctx context.Context, s *http.Server, done chan struct{}) {
 	sigch := make(chan os.Signal, 1)
 	signal.Notify(sigch, syscall.SIGINT, syscall.SIGTERM)

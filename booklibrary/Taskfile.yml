@@ -1,60 +1,24 @@
 version: '3'
 
+includes:
+  go: Tasks.Go.yaml
+  mongo: Tasks.Mongo.yaml
+  docker: Tasks.Docker.yaml
+
+vars:
+  VERSION: 
+    sh: echo "0.0.0-SNAPSHOT-$(git rev-parse --short HEAD)"
+  COMMIT: 
+    sh: git rev-parse HEAD
+  DATE: 
+    sh: date -u +%Y-%m-%dT%H:%M:%SZ
+  SHA: 
+    sh: git rev-parse --short HEAD
+
 tasks:
   default:
     desc: Runs tests and builds the application
-    deps:
-      - build
-      - test
-      
-  run:
-    desc: Runs the application (assumes MongoDB is running already)
     cmds:
-      - go run cmd/booklibrary-api/main.go -debug
-
-  build:
-    desc: Builds the application binary
-    cmds:
-      - go build -o booklibrary-api cmd/booklibrary-api/main.go
- 
-  test:
-    desc: Runs the tests
-    cmds:
-      - go test -v ./...
-  
-  docker:build:
-    desc: Builds the application's Docker image
-    cmds:
-      - docker compose --profile all build  
-
-  docker:up:
-    desc: Runs the application container and MongoDB container
-    cmds:
-      - docker compose --profile all up -d
-  
-  docker:down:
-    desc: Shuts down the application and MongoDB containers 
-    cmds:
-      - docker compose --profile all down
-  
-  docker:logs:
-    desc: Streams all containers stdout/stderr (blocks, CTRL+C to exit)
-    cmds:
-      - docker compose --profile all logs --follow 
-    ignore_error: true
-
-  mongo:up:
-    desc: Run MongoDB container for local development
-    cmds:
-      - docker compose up -d
-  
-  mongo:down:
-    desc: Shuts down MongoDB container for local development
-    cmds:
-      - docker compose down 
-
-  mongo:sh:
-    desc: Connects to the MongoDB container with mongosh
-    interactive: true
-    cmds:
-      - docker compose exec booklibrary-db mongosh
+      - task: go:tidy
+      - task: go:build
+      - task: go:test

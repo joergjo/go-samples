@@ -15,6 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// NewMux creates a new route multiplexer for all endpoints offered the BookLibrary API and all required middleware enabled.
 func NewMux(crud model.CrudService) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.StripSlashes)

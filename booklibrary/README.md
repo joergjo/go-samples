@@ -8,82 +8,76 @@ Backbone.js and Node.js](https://addyosmani.com/backbone-fundamentals/#exercise-
 > Note: This project only contains the Web API, but not the original Backbone SPA or any other client application.
 
 ## Useful commands
-Here is a list of useful commands to work this sample. You can also use the included [`Task file`](./Taskfile.yml) to run them if you have [Task](https://taskfile.dev) installed.
+This project uses [Task](https://taskfile.dev/) for building and testing the app.
 
-### Building
-
+### Tidy, run tests, and build
 ```bash
-go build -o booklibrary-api cmd/booklibrary-api/main.go
-
-# Using Task
-task build
-```
-### Running (without explicit build)
-```bash
-go run cmd/booklibrary-api/main.go
-
-# Using Task
-task run
+task 
+# alternatively
+task default
 ```
 
 
-
-### Runing tests
-
+### Build binary
 ```bash
-go test -v ./...
-
-# Using Task
-task test
+task go:build
 ```
 
-### Build Docker image
-```bash
-docker buildx build -t booklibrary-api --load .
+### Format source code and clean up go.mod
+```
+task go:tidy
+```
 
-# Using Task
+### Run app (implicitly builds the app and discards the binary after execution)
+```bash
+task go:run
+```
+
+### Run tests
+```
+task go:test
+```
+
+### Build app container image
+```
 task docker:build
 ```
 
-### Run app and MongoDB using Docker Compose
+### Run app and MongoDB containers
 ```bash
-docker compose --profile all up -d
-curl -s localhost:8000/api/books | jq
-# Shutdown
-docker compose --profile all down
-
-
-# Using Task
 task docker:up
 curl -s localhost:8000/api/books | jq
-# Shutdown
+```
+
+### Shut down app and MongoDB containers
+```
 task docker:down
 ```
 
-### Run MongoDB for local development and execute `mongosh`
+### Run MongoDB container for development and execute `mongosh`
 ```bash
-docker compose up -d
-docker compose exec booklibrary-db mongosh
-# Shutdown
-docker compose down
-
-# Using Task
 task mongo:up
-task mongo:sh
-# Shutdown
-task mongo:down
-
 ```
 
-### Overriding default settings for Docker Compose
-You can override a few settings used by the Compose file. Either create an [`.env` file](https://docs.docker.com/compose/environment-variables/) or export them in your shell.
+### Run mongosh in container
+```bash
+task mongo:sh
+```
+
+### Shut down MongoDB container
+```bash
+task mongo:down
+```
+
+### Overriding default settings for containers
+The tasks listed above use Docker Compose to control container execution. You can override a few settings used by the Compose file. Either create an [`.env` file](https://docs.docker.com/compose/environment-variables/) or export them in your shell.
 
 
 | Variable     | Purpose                                              | Default Value |
 |--------------|------------------------------------------------------|---------------|
 | `DOCKERFILE` | Dockerfile used for building the container image     | `Dockerfile`  |
 | `TAG`        | Image tag used for the locally built container image | `latest`      |
-| `MONGO_TAG`  | MongoDB image tag                                    | `6:0`         |
+| `MONGO_TAG`  | MongoDB image tag                                    | `7:0`         |
 
 
 

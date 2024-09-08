@@ -1,0 +1,18 @@
+version: '3'
+
+tasks:
+  up:
+    desc: Run MongoDB container for local development
+    cmds:
+      - docker compose up -d
+    
+  down:
+    desc: Shuts down MongoDB container for local development
+    cmds:
+      - docker compose down 
+
+  sh:
+    desc: Runs mongosh in the MongoDB container interactively
+    interactive: true
+    cmds:
+      - docker compose exec booklibrary-db mongosh

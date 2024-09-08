@@ -3,7 +3,7 @@ volumes:
 
 services:
   booklibrary-db:
-    image: mongo:${MONGO_TAG:-6.0}
+    image: mongo:${MONGO_TAG:-7.0}
     ports:
       # Port exposed as a convenience for local development
       - "27017:27017"
@@ -11,7 +11,8 @@ services:
       - mongodata:/data/db
 
   booklibrary-api:
-    profiles: ["all"]
+    profiles: 
+      - "all"
     image: booklibrary-api:${TAG:-latest}
     build:
       context: .
