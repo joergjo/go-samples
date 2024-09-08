@@ -4,11 +4,11 @@
 
 This repo contains various Go applications that I have ported from other development stacks (typically demo applications that I have found useful over the years) or small, yet useful applications I have developed myself. 
 All samples use [Taskfiles](https://taskfile.dev) as simpler to use alternative to Makefiles and allow you to build the app, run tests, create a container image etc. Using Taskfiles isn't required to use these samples, but if 
-you're new to Go will they help you getting started quickly without having to know the Go toolchain, the Docker CLI etc.
+you're new to Go will they help you to get started quickly without having to know the Go toolchain, the Docker CLI etc.
 
 ## Table of contents
 
-1. [booklibrary](./booklibrary): This a port of Addy Osmani's venerable booklibrary API found in the Book Developing BAckbone.js Applications originally written in JavaScript for Node.js.
+1. [booklibrary](./booklibrary): This a port of Addy Osmani's venerable booklibrary API found in the Book Developing Backbone.js Applications originally written in JavaScript for Node.js.
    The Go version makes use of [chi](https://go-chi.io/#/) to implement as RESTful resource, the official [Mongo driver for Go](https://pkg.go.dev/go.mongodb.org/mongo-driver),
    and exposes [Prometheus metrics](https://prometheus.io/docs/tutorials/instrumenting_http_server_in_go/).
 
