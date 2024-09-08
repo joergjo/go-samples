@@ -8,7 +8,17 @@ Backbone.js and Node.js](https://addyosmani.com/backbone-fundamentals/#exercise-
 > Note: This project only contains the Web API, but not the original Backbone SPA or any other client application.
 
 ## Useful commands
-This project uses [Task](https://taskfile.dev/) for building and testing the app.
+This project uses [Task](https://taskfile.dev/) for building and testing the app. The application binds to 0.0.0.0:8000 and the API is 
+exposed under at /api/books.
+
+To test the API, you can use any suitable HTTP client such as Postman, curl, wget, httpie etc.
+
+```bash
+curl -s localhost:8000/api/books | jq
+```
+
+![Sample ouput](media/sample.png)
+
 
 ### Tidy, run tests, and build
 ```bash
@@ -16,7 +26,6 @@ task
 # alternatively
 task default
 ```
-
 
 ### Build binary
 ```bash
@@ -46,7 +55,6 @@ task docker:build
 ### Run app and MongoDB containers
 ```bash
 task docker:up
-curl -s localhost:8000/api/books | jq
 ```
 
 ### Shut down app and MongoDB containers
