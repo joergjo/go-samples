@@ -1,0 +1,6 @@
+POST   http://localhost:9020/query/ HTTP/1.1
+content-type: application/json
+
+{
+	"content": "How can I control fuel savings?"
+}
