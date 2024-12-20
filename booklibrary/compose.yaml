@@ -3,7 +3,7 @@ volumes:
 
 services:
   booklibrary-db:
-    image: mongo:${MONGO_TAG:-7.0}
+    image: mongodb/mongodb-community-server:${MONGO_TAG:-7.0-ubi9}
     ports:
       # Port exposed as a convenience for local development
       - "27017:27017"
