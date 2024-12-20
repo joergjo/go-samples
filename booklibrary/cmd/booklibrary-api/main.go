@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"time"
 
 	"log/slog"
 
@@ -39,7 +40,9 @@ func main() {
 		os.Exit(1)
 	}
 	defer func() {
-		if err := crud.Close(context.Background()); err != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := crud.Close(ctx); err != nil {
 			slog.Error("closing database connection", log.ErrorKey, err)
 		} else {
 			slog.Info("closed database connection")
