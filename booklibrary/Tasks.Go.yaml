@@ -16,7 +16,7 @@ tasks:
   test:
     desc: Runs the tests
     cmds:
-      - go test -v ./...
+      - go test -v -count 2 -shuffle on ./...
 
   tidy:
     desc: Format code and tidy go.mod
