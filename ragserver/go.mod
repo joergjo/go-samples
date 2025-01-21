@@ -4,8 +4,8 @@ go 1.23.0
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai v0.7.1
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.16.0
-	github.com/weaviate/weaviate v1.28.2
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.17.0
+	github.com/weaviate/weaviate v1.28.3
 	github.com/weaviate/weaviate-go-client/v4 v4.16.1
 )
 
@@ -28,9 +28,9 @@ require (
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	go.mongodb.org/mongo-driver v1.14.0 // indirect
-	golang.org/x/net v0.33.0 // indirect
+	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/oauth2 v0.23.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1 // indirect
 	google.golang.org/grpc v1.66.2 // indirect
