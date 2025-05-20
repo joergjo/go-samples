@@ -28,17 +28,15 @@ func main() {
 	flag.Parse()
 
 	cfg := zap.NewProductionConfig()
-	var hOpts *zapslog.HandlerOptions
+	hOpts := []zapslog.HandlerOption{}
 	if *debug {
 		// if debug is enabled, set the log level to debug and add source location
 		cfg.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
-		hOpts = &zapslog.HandlerOptions{
-			AddSource: true,
-		}
+		hOpts = append(hOpts, zapslog.WithCaller(true))
 	}
 	logger := zap.Must(cfg.Build())
 	defer logger.Sync()
-	slog.SetDefault(slog.New(zapslog.NewHandler(logger.Core(), hOpts)))
+	slog.SetDefault(slog.New(zapslog.NewHandler(logger.Core(), hOpts...)))
 	slog.Info("kubeup", "version", version, "commit", commit, "date", date, "builtBy", builtBy)
 	if *debug {
 		slog.Warn("debug logging enabled, secrets will be written to stderr")
