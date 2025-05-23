@@ -21,4 +21,6 @@ you're new to Go will they help you to get started quickly without having to kno
 
 1. [ragserver](./ragserver/): This is a port of the RAG server sample that was published by the Go team on their official [blog](https://go.dev/blog/llmpowered) for Azure OpenAI/OpenAI.
 
-1. [codeagent-cc](./codeagent-cc/): This is a port of Thorsten Ball's fantastic code editing agent sample published on his [blog](https://ampcode.com/how-to-build-an-agent) for Azure OpenAI/OpenAI using the [Chat Completion API](https://platform.openai.com/docs/guides/text?api-mode=chat).
+1. [codeagent-cc](./codeagent-cc/): This is a port of Thorsten Ball's fantastic code editing agent sample published on his [blog](https://ampcode.com/how-to-build-an-agent) for Azure OpenAI/OpenAI using the [Chat Completions API](https://platform.openai.com/docs/guides/text?api-mode=chat).
+
+1. [codeagent](./codeagent/): This is yet another port of Thorsten Ball's fantastic code editing agent sample published on his [blog](https://ampcode.com/how-to-build-an-agent) for Azure OpenAI/OpenAI using the [Responses API](https://platform.openai.com/docs/guides/text?api-mode=responses). The Respones API is more powerful than the Chat Completions API and allows one to maintain conversational state on the server side, which simplifies this implementation.
