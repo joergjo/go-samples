@@ -56,7 +56,6 @@ func (a *Agent) Run(ctx context.Context) error {
 			fmt.Printf("\u001b[93mOpenAI\u001b[0m: %s\n", message.Content)
 		case "tool_calls":
 			for _, tool := range message.ToolCalls {
-				// fmt.Printf("Tool call: %s(%s)\n", tool.Function.Name, tool.Function.Arguments)
 				result := a.executeTool(tool.ID, tool.Function.Name, json.RawMessage(tool.Function.Arguments))
 				toolResults = append(toolResults, result)
 			}
@@ -74,6 +73,9 @@ func (a *Agent) Run(ctx context.Context) error {
 }
 
 func (a *Agent) runInference(ctx context.Context, conversation []openai.ChatCompletionMessageParamUnion) (*openai.ChatCompletion, error) {
+	// Creating the tool definitions could be moved out of this method, since it does not use
+	// any of the method's parameters. I left it here since the original version rebuilds the
+	// tool definitions every time as well.
 	tools := make([]openai.ChatCompletionToolParam, 0, len(a.tools))
 	for _, tool := range a.tools {
 		tools = append(tools, openai.ChatCompletionToolParam{
