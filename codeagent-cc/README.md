@@ -1,4 +1,4 @@
-# codeagent
+# codeagent-cc
 
 This is a OpenAI port of Thorsten Ball's awesome code agent sample he has blogged about [here](https://ampcode.com/how-to-build-an-agent). I've opted to split the original sample across multiple Go files, but other than that this port reflects the original version based on Athropic's as closely as possible.
 

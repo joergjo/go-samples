@@ -19,6 +19,6 @@ you're new to Go will they help you to get started quickly without having to kno
    Technically, you can achieve the same with an Azure Function or a Logic App,
    but being able to run a 10 MB container image on a [Azure Container App with scale-to-zero](https://learn.microsoft.com/en-us/azure/container-apps/scale-app?pivots=azure-cli#http) to me is a viable alternative.     
 
-1. [ragserver](./ragserver/): This is port of the RAG server sample that was published by the Go team on their official [blog](https://go.dev/blog/llmpowered) for Azure OpenAI/OpenAI.
+1. [ragserver](./ragserver/): This is a port of the RAG server sample that was published by the Go team on their official [blog](https://go.dev/blog/llmpowered) for Azure OpenAI/OpenAI.
 
-1. [codeagent](./codeagent/): This is port of Thorsten Ball's fantastic code editing agent sample published on his [blog](https://ampcode.com/how-to-build-an-agent) for Azure OpenAI/OpenAI.
+1. [codeagent-cc](./codeagent-cc/): This is a port of Thorsten Ball's fantastic code editing agent sample published on his [blog](https://ampcode.com/how-to-build-an-agent) for Azure OpenAI/OpenAI using the [Chat Completion API](https://platform.openai.com/docs/guides/text?api-mode=chat).
