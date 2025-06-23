@@ -4,7 +4,7 @@ go 1.24.3
 
 require (
 	github.com/invopop/jsonschema v0.13.0
-	github.com/openai/openai-go v1.1.0
+	github.com/openai/openai-go v1.6.0
 )
 
 require (
@@ -18,7 +18,7 @@ require (
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
-	golang.org/x/net v0.40.0 // indirect
-	golang.org/x/text v0.25.0 // indirect
+	golang.org/x/net v0.41.0 // indirect
+	golang.org/x/text v0.26.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
