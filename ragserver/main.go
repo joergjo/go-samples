@@ -17,10 +17,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/azure"
+	"github.com/weaviate/weaviate-go-client/v5/weaviate"
+	"github.com/weaviate/weaviate-go-client/v5/weaviate/graphql"
 	"github.com/weaviate/weaviate/entities/models"
 )
 
@@ -47,6 +47,8 @@ Context:
 %s
 `
 
+const apiVersion = "2024-10-21"
+
 // This is a standard Go HTTP server. Server state is in the ragServer struct.
 // The `main` function connects to the required services (Weaviate and OpenAI),
 // initializes the server state and registers HTTP handlers.
@@ -68,8 +70,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	creds := azcore.NewKeyCredential(key)
-	oaiClient, err := azopenai.NewClientWithKeyCredential(endpoint, creds, nil)
+	oaiClient := openai.NewClient(azure.WithEndpoint(endpoint, apiVersion), azure.WithAPIKey(key))
 
 	if err != nil {
 		slog.Error("creating client", "error", err)
@@ -79,7 +80,7 @@ func main() {
 	server := &ragServer{
 		ctx:           ctx,
 		wvClient:      wvClient,
-		oaiClient:     oaiClient,
+		oaiClient:     &oaiClient,
 		ccDeployment:  ccDeployment,
 		embDeployment: embDeployment,
 	}
@@ -97,7 +98,7 @@ func main() {
 type ragServer struct {
 	ctx           context.Context
 	wvClient      *weaviate.Client
-	oaiClient     *azopenai.Client
+	oaiClient     *openai.Client
 	ccDeployment  string
 	embDeployment string
 }
@@ -123,13 +124,15 @@ func (rs *ragServer) addDocumentsHandler(w http.ResponseWriter, r *http.Request)
 	for _, d := range ar.Documents {
 		input = append(input, d.Text)
 	}
-	resp, err := rs.oaiClient.GetEmbeddings(
+
+	resp, err := rs.oaiClient.Embeddings.New(
 		rs.ctx,
-		azopenai.EmbeddingsOptions{
-			DeploymentName: &rs.embDeployment,
-			Input:          input,
-		},
-		nil)
+		openai.EmbeddingNewParams{
+			Model: openai.EmbeddingModel(rs.embDeployment), // Azure deployment name here
+			Input: openai.EmbeddingNewParamsInputUnion{
+				OfArrayOfStrings: input,
+			},
+		})
 	if err != nil {
 		slog.Error("getting embeddings", "error", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -144,7 +147,7 @@ func (rs *ragServer) addDocumentsHandler(w http.ResponseWriter, r *http.Request)
 			Properties: map[string]any{
 				"text": doc.Text,
 			},
-			Vector: resp.Embeddings.Data[i].Embedding,
+			Vector: makeVector(resp.Data[i].Embedding),
 		}
 	}
 
@@ -170,13 +173,14 @@ func (rs *ragServer) queryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Embed the query contents.
-	embResp, err := rs.oaiClient.GetEmbeddings(
+	embResp, err := rs.oaiClient.Embeddings.New(
 		rs.ctx,
-		azopenai.EmbeddingsOptions{
-			DeploymentName: &rs.embDeployment,
-			Input:          []string{qr.Content},
-		},
-		nil)
+		openai.EmbeddingNewParams{
+			Model: openai.EmbeddingModel(rs.embDeployment), // Azure deployment name here
+			Input: openai.EmbeddingNewParamsInputUnion{
+				OfString: openai.String(qr.Content),
+			},
+		})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -187,7 +191,7 @@ func (rs *ragServer) queryHandler(w http.ResponseWriter, r *http.Request) {
 	gql := rs.wvClient.GraphQL()
 	result, err := gql.Get().
 		WithNearVector(
-			gql.NearVectorArgBuilder().WithVector(embResp.Data[0].Embedding)).
+			gql.NearVectorArgBuilder().WithVector(makeVector(embResp.Data[0].Embedding))).
 		WithClassName("Document").
 		WithFields(graphql.Field{Name: "text"}).
 		WithLimit(3).
@@ -206,18 +210,26 @@ func (rs *ragServer) queryHandler(w http.ResponseWriter, r *http.Request) {
 	// Create a RAG query for the LLM with the most relevant documents as
 	// context.
 	ragQuery := fmt.Sprintf(ragTemplateStr, qr.Content, strings.Join(contents, "\n"))
-	messages := []azopenai.ChatRequestMessageClassification{
-		// You set the tone and rules of the conversation with a prompt as the system role.
-		&azopenai.ChatRequestSystemMessage{Content: azopenai.NewChatRequestSystemMessageContent(systemPrompt)},
+	ccResp, err := rs.oaiClient.Chat.Completions.New(rs.ctx, openai.ChatCompletionNewParams{
+		Model: openai.ChatModel(rs.ccDeployment), // For Azure OpenAI, deployment name is used as the model.
+		Messages: []openai.ChatCompletionMessageParamUnion{
+			{
+				OfSystem: &openai.ChatCompletionSystemMessageParam{
+					Content: openai.ChatCompletionSystemMessageParamContentUnion{
+						OfString: openai.String(systemPrompt),
+					},
+				},
+			},
+			{
+				OfUser: &openai.ChatCompletionUserMessageParam{
+					Content: openai.ChatCompletionUserMessageParamContentUnion{
+						OfString: openai.String(ragQuery),
+					},
+				},
+			},
+		},
+	})
 
-		// The user asks a question
-		&azopenai.ChatRequestUserMessage{Content: azopenai.NewChatRequestUserMessageContent(ragQuery)},
-	}
-
-	ccResp, err := rs.oaiClient.GetChatCompletions(rs.ctx, azopenai.ChatCompletionsOptions{
-		DeploymentName: &rs.ccDeployment,
-		Messages:       messages,
-	}, nil)
 	if err != nil {
 		log.Printf("calling generative model: %v", err.Error())
 		http.Error(w, "generative model error", http.StatusInternalServerError)
@@ -230,7 +242,7 @@ func (rs *ragServer) queryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderJSON(w, *ccResp.Choices[0].Message.Content)
+	renderJSON(w, ccResp.Choices[0].Message.Content)
 }
 
 // decodeGetResults decodes the result returned by Weaviate's GraphQL Get

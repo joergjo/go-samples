@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/weaviate/weaviate-go-client/v4/weaviate"
+	"github.com/weaviate/weaviate-go-client/v5/weaviate"
 	"github.com/weaviate/weaviate/entities/models"
 )
 
@@ -60,4 +60,15 @@ func combinedWeaviateError(result *models.GraphQLResponse, err error) error {
 		return fmt.Errorf("weaviate error: %v", ss)
 	}
 	return nil
+}
+
+func makeVector(vec64 []float64) []float32 {
+	if vec64 == nil {
+		return nil
+	}
+	vec32 := make([]float32, len(vec64))
+	for i, v := range vec64 {
+		vec32[i] = float32(v)
+	}
+	return vec32
 }
