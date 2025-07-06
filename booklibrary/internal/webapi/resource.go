@@ -1,4 +1,4 @@
-package router
+package webapi
 
 import (
 	"errors"

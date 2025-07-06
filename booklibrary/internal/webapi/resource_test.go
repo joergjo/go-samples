@@ -1,4 +1,4 @@
-package router_test
+package webapi_test
 
 import (
 	"bytes"
@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/joergjo/go-samples/booklibrary/internal/http/router"
 	"github.com/joergjo/go-samples/booklibrary/internal/model"
+	"github.com/joergjo/go-samples/booklibrary/internal/webapi"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -102,7 +102,7 @@ func TestListBooks(t *testing.T) {
 				}
 				return bb, nil
 			}
-			router := router.NewResource(&crud)
+			router := webapi.NewResource(&crud)
 			path := "/"
 			if tc.limit != -1 {
 				path = fmt.Sprintf("%s?limit=%d", path, tc.limit)
@@ -159,7 +159,7 @@ func TestGetBook(t *testing.T) {
 				return b, nil
 			}
 
-			router := router.NewResource(&crud)
+			router := webapi.NewResource(&crud)
 			r := httptest.NewRequest(http.MethodGet, "/"+tc.in, nil)
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, r)
@@ -214,7 +214,7 @@ func TestDeleteBook(t *testing.T) {
 				return b, nil
 			}
 
-			router := router.NewResource(&crud)
+			router := webapi.NewResource(&crud)
 			r := httptest.NewRequest(http.MethodDelete, "/"+tc.in, nil)
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, r)
@@ -233,7 +233,7 @@ func TestAddBook(t *testing.T) {
 		return book, nil
 	}
 
-	router := router.NewResource(&crud)
+	router := webapi.NewResource(&crud)
 	book := model.Book{
 		Author:      "Jörg Jooss",
 		Title:       "Go Testing in Action",
@@ -311,7 +311,7 @@ func TestUpdateBook(t *testing.T) {
 				t.Fatalf("Error marshaling Book: %v.", err)
 			}
 
-			router := router.NewResource(&crud)
+			router := webapi.NewResource(&crud)
 			r := httptest.NewRequest(http.MethodPut, "/"+book.ID, bytes.NewBuffer(body))
 			r.Header.Set("Content-Type", applicationJSON)
 			w := httptest.NewRecorder()

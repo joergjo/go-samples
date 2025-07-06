@@ -1,4 +1,4 @@
-package router_test
+package webapi_test
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/joergjo/go-samples/booklibrary/internal/http/router"
 	"github.com/joergjo/go-samples/booklibrary/internal/model"
+	"github.com/joergjo/go-samples/booklibrary/internal/webapi"
 )
 
 func TestSystemEndpoints(t *testing.T) {
@@ -38,7 +38,7 @@ func TestSystemEndpoints(t *testing.T) {
 			crud.GetFn = func(_ context.Context, id string) (model.Book, error) {
 				return model.Book{}, nil
 			}
-			router := router.NewMux(&crud)
+			router := webapi.NewMux(&crud)
 			ts := httptest.NewServer(router)
 			defer ts.Close()
 

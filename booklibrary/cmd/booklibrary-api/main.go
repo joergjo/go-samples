@@ -3,19 +3,19 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
 	"runtime"
+	"syscall"
 	"time"
 
 	"log/slog"
 
 	"github.com/joergjo/go-samples/booklibrary/internal/config"
-	"github.com/joergjo/go-samples/booklibrary/internal/http/router"
-	"github.com/joergjo/go-samples/booklibrary/internal/http/server"
 	"github.com/joergjo/go-samples/booklibrary/internal/log"
 	"github.com/joergjo/go-samples/booklibrary/internal/mongo"
+	"github.com/joergjo/go-samples/booklibrary/internal/webapi"
 )
 
 var (
@@ -34,12 +34,17 @@ func main() {
 		slog.Warn("debug logging enabled")
 	}
 
+	os.Exit(run(s))
+}
+
+func run(s config.Settings) int {
 	crud, err := newCrudService(s.MongoURI, s.Db, s.Collection)
 	if err != nil {
 		slog.Error("creating book service", log.ErrorKey, err)
-		os.Exit(1)
+		return 1
 	}
 	defer func() {
+		slog.Info("closing database connection")
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := crud.Close(ctx); err != nil {
@@ -49,19 +54,41 @@ func main() {
 		}
 	}()
 
-	mux := router.NewMux(crud)
-	srv := server.New(mux, s.Port)
-	done := make(chan struct{})
-	go server.Shutdown(context.Background(), srv, done)
+	srv := webapi.NewServer(crud, s.Port)
 
-	slog.Info(fmt.Sprintf("server starting, listening on 0.0.0.0:%d", s.Port))
-	if err = srv.ListenAndServe(); err != http.ErrServerClosed {
+	errC := make(chan error, 1)
+	go func() {
+		slog.Info("starting server", log.AddrKey, srv.Addr)
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			errC <- err
+		}
+	}()
+
+	sigC := make(chan os.Signal, 1)
+	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM)
+
+	var exit int
+	select {
+	case err := <-errC:
 		slog.Error("server error", log.ErrorKey, err)
-		os.Exit(1)
+		exit = 1
+	case sig := <-sigC:
+		slog.Warn("received signal, shutting down", "signal", sig.String())
+
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		slog.Info("waiting for server to shut down")
+		if err := srv.Shutdown(ctx); err != nil {
+			slog.Error("shutting down server", "error", err)
+			if err := srv.Close(); err != nil {
+				slog.Error("forcefully closing server", "error", err)
+			}
+		}
+		slog.Info("server has shut down")
 	}
-	slog.Info("waiting for shut down to complete")
-	<-done
-	slog.Info("server has shut down")
+
+	return exit
 }
 
 func configure() config.Settings {
@@ -72,11 +99,11 @@ func configure() config.Settings {
 	coll := config.GetEnvString("BOOKLIBRARY_COLLECTION", "books")
 	debug := config.GetEnvBool("BOOKLIBRARY_DEBUG", false)
 
-	flag.IntVar(&(s.Port), "port", port, "HTTP port to listen on")
-	flag.StringVar(&(s.MongoURI), "mongoURI", mongoURI, "MongoDB URI to connect to")
-	flag.StringVar(&(s.Db), "db", db, "MongoDB database")
-	flag.StringVar(&(s.Collection), "collection", coll, "MongoDB collection")
-	flag.BoolVar(&(s.Debug), "debug", debug, "Enable debug logging")
+	flag.IntVar(&s.Port, "port", port, "HTTP port to listen on")
+	flag.StringVar(&s.MongoURI, "mongoURI", mongoURI, "MongoDB URI to connect to")
+	flag.StringVar(&s.Db, "db", db, "MongoDB database")
+	flag.StringVar(&s.Collection, "collection", coll, "MongoDB collection")
+	flag.BoolVar(&s.Debug, "debug", debug, "Enable debug logging")
 	flag.Parse()
 	return s
 }
