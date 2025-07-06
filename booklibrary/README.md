@@ -85,7 +85,7 @@ The tasks listed above use Docker Compose to control container execution. You ca
 |--------------|------------------------------------------------------|---------------|
 | `DOCKERFILE` | Dockerfile used for building the container image     | `Dockerfile`  |
 | `TAG`        | Image tag used for the locally built container image | `latest`      |
-| `MONGO_TAG`  | MongoDB image tag                                    | `7:0`         |
+| `MONGO_TAG`  | MongoDB image tag                                    | `7.0-ubi9`         |
 
 
 
