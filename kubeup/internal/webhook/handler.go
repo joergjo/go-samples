@@ -18,7 +18,7 @@ const (
 // NewCloudEventHandler creates a new CloudEvent handler with the given Publisher.
 func NewCloudEventHandler(ctx context.Context, pub *Publisher) (http.Handler, error) {
 	p, err := cloudevents.NewHTTP(cehttp.WithDefaultOptionsHandlerFunc(
-		[]string{http.MethodOptions},
+		[]string{http.MethodPost},
 		cehttp.DefaultAllowedRate,
 		[]string{AzureEventGridOrigin},
 		true))
