@@ -12,15 +12,11 @@ you're new to Go will they help you to get started quickly without having to kno
    The Go version makes use of [chi](https://go-chi.io/#/) to implement as RESTful resource, the official [Mongo driver for Go](https://pkg.go.dev/go.mongodb.org/mongo-driver),
    and exposes [Prometheus metrics](https://prometheus.io/docs/tutorials/instrumenting_http_server_in_go/).
 
-1. [kubeup](./kubeup): This is a webhook that listens for [Azure Kubernetes Service events received from Azure Event Grid](https://learn.microsoft.com/en-us/azure/aks/quickstart-event-grid?tabs=azure-cli) built using the
-   [CloudEvents Go SDK](https://cloudevents.github.io/sdk-go/). This allows you to be notified of new Kubernetes versions becoming available, the start and end of rolling cluster upgrades or deprecation warnings if your
-   Kubernetes will fall out of support. `kubeup` allows you to send forward these events by email, log them, and provide your own event handling logic. 
+2. [ragserver](./ragserver/): This is a port of the RAG server sample that was published by the Go team on their official [blog](https://go.dev/blog/llmpowered) for Azure OpenAI/OpenAI.
 
-   Technically, you can achieve the same with an Azure Function or a Logic App,
-   but being able to run a 10 MB container image on a [Azure Container App with scale-to-zero](https://learn.microsoft.com/en-us/azure/container-apps/scale-app?pivots=azure-cli#http) to me is a viable alternative.     
+3. [codeagent-cc](./codeagent-cc/): This is a port of Thorsten Ball's fantastic code editing agent sample published on his [blog](https://ampcode.com/how-to-build-an-agent) for Azure OpenAI/OpenAI using the [Chat Completions API](https://platform.openai.com/docs/guides/text?api-mode=chat).
 
-1. [ragserver](./ragserver/): This is a port of the RAG server sample that was published by the Go team on their official [blog](https://go.dev/blog/llmpowered) for Azure OpenAI/OpenAI.
+4. [codeagent](./codeagent/): This is yet another port of Thorsten Ball's fantastic code editing agent sample published on his [blog](https://ampcode.com/how-to-build-an-agent) for Azure OpenAI/OpenAI using the [Responses API](https://platform.openai.com/docs/guides/text?api-mode=responses). The Respones API is more powerful than the Chat Completions API and allows one to maintain conversational state on the server side, which simplifies this implementation.
 
-1. [codeagent-cc](./codeagent-cc/): This is a port of Thorsten Ball's fantastic code editing agent sample published on his [blog](https://ampcode.com/how-to-build-an-agent) for Azure OpenAI/OpenAI using the [Chat Completions API](https://platform.openai.com/docs/guides/text?api-mode=chat).
-
-1. [codeagent](./codeagent/): This is yet another port of Thorsten Ball's fantastic code editing agent sample published on his [blog](https://ampcode.com/how-to-build-an-agent) for Azure OpenAI/OpenAI using the [Responses API](https://platform.openai.com/docs/guides/text?api-mode=responses). The Respones API is more powerful than the Chat Completions API and allows one to maintain conversational state on the server side, which simplifies this implementation.
+## Note
+The `kubeup` sample has been moved to its [own repository](https://github.com/joergjo/kubeup).

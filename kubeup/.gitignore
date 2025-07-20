@@ -1,8 +1,0 @@
-webhook
-kubeup
-!internal/webhook
-!cmd/webhook
-dist/
-*.exe
-[Tt]askfile.yml
-[Tt]askfile.yaml
