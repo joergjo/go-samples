@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/packages/param"
-	"github.com/openai/openai-go/shared"
+	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v2/packages/param"
+	"github.com/openai/openai-go/v2/shared"
 )
 
 type Agent struct {
@@ -76,13 +76,15 @@ func (a *Agent) runInference(ctx context.Context, conversation []openai.ChatComp
 	// Creating the tool definitions could be moved out of this method, since it does not use
 	// any of the method's parameters. I left it here since the original version rebuilds the
 	// tool definitions every time as well.
-	tools := make([]openai.ChatCompletionToolParam, 0, len(a.tools))
+	tools := make([]openai.ChatCompletionToolUnionParam, 0, len(a.tools))
 	for _, tool := range a.tools {
-		tools = append(tools, openai.ChatCompletionToolParam{
-			Function: shared.FunctionDefinitionParam{
-				Name:        tool.Name,
-				Description: param.NewOpt(tool.Description),
-				Parameters:  tool.FunctionParams,
+		tools = append(tools, openai.ChatCompletionToolUnionParam{
+			OfFunction: &openai.ChatCompletionFunctionToolParam{
+				Function: shared.FunctionDefinitionParam{
+					Name:        tool.Name,
+					Description: param.NewOpt(tool.Description),
+					Parameters:  tool.FunctionParams,
+				},
 			},
 		})
 	}

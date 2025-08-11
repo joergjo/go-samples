@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/azure"
+	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v2/azure"
 )
 
 const apiVersion = "2025-03-01-preview"

@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/invopop/jsonschema"
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/shared"
+	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v2/shared"
 )
 
 type ToolDefinition struct {
