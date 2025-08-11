@@ -5,7 +5,7 @@ go 1.24
 toolchain go1.24.3
 
 require (
-	github.com/openai/openai-go v1.12.0
+	github.com/openai/openai-go/v2 v2.0.2
 	github.com/weaviate/weaviate v1.32.2
 	github.com/weaviate/weaviate-go-client/v5 v5.4.1
 )
