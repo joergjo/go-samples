@@ -29,7 +29,7 @@ func main() {
 	s := configure()
 	slog.SetDefault(log.New(os.Stdout, s.Debug))
 
-	slog.Info("booklibrary-api", "version", version, "commit", commit, "date", date, "builtBy", builtBy, "goVersion", runtime.Version())
+	slog.Info("booklibrary-api", "version", version, "commit", commit, "date", date, "builtBy", builtBy, "goVersion", runtime.Version(), "goMaxProcs", runtime.GOMAXPROCS(0))
 	if s.Debug {
 		slog.Warn("debug logging enabled")
 	}
