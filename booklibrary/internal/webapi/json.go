@@ -31,6 +31,7 @@ func respond(w http.ResponseWriter, data any, status int, headers ...header) {
 }
 
 func bind(r *http.Request, v any) error {
+	defer r.Body.Close()
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	return dec.Decode(v)
