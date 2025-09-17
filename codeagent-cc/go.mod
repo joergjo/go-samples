@@ -4,7 +4,7 @@ go 1.24.3
 
 require (
 	github.com/invopop/jsonschema v0.13.0
-	github.com/openai/openai-go/v2 v2.4.1
+	github.com/openai/openai-go/v2 v2.4.3
 )
 
 require (
@@ -12,7 +12,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
-	github.com/mailru/easyjson v0.9.0 // indirect
+	github.com/mailru/easyjson v0.9.1 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
