@@ -11,18 +11,20 @@ import (
 )
 
 type Agent struct {
-	client         *openai.Client
-	deployment     string
-	getUserMessage func() (string, bool)
-	tools          []ToolDefinition
+	client           *openai.Client
+	deployment       string
+	isReasoningModel bool
+	getUserMessage   func() (string, bool)
+	tools            []ToolDefinition
 }
 
-func NewAgent(client *openai.Client, deployment string, getUserMessage func() (string, bool), tools []ToolDefinition) *Agent {
+func NewAgent(client *openai.Client, deployment string, isReasoningModel bool, getUserMessage func() (string, bool), tools []ToolDefinition) *Agent {
 	return &Agent{
-		client:         client,
-		deployment:     deployment,
-		getUserMessage: getUserMessage,
-		tools:          tools,
+		client:           client,
+		deployment:       deployment,
+		isReasoningModel: isReasoningModel,
+		getUserMessage:   getUserMessage,
+		tools:            tools,
 	}
 }
 
@@ -59,6 +61,8 @@ func (a *Agent) Run(ctx context.Context) error {
 				result := a.executeTool(tool.ID, tool.Function.Name, json.RawMessage(tool.Function.Arguments))
 				toolResults = append(toolResults, result)
 			}
+		default:
+			fmt.Printf("Unknown finish reason: %s\n", completion.Choices[0].FinishReason)
 		}
 
 		if len(toolResults) == 0 {
@@ -89,13 +93,20 @@ func (a *Agent) runInference(ctx context.Context, conversation []openai.ChatComp
 		})
 	}
 
-	message, err := a.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+	if a.isReasoningModel {
+		return a.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+			Messages:            conversation,
+			MaxCompletionTokens: param.NewOpt(int64(4000)),
+			Model:               shared.ChatModel(a.deployment),
+			Tools:               tools,
+		})
+	}
+	return a.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Messages:  conversation,
 		MaxTokens: param.NewOpt(int64(1000)),
 		Model:     shared.ChatModel(a.deployment),
 		Tools:     tools,
 	})
-	return message, err
 }
 
 func (a *Agent) executeTool(id string, name string, input json.RawMessage) openai.ChatCompletionMessageParamUnion {
