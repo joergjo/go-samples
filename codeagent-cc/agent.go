@@ -5,26 +5,22 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/openai/openai-go/v2"
-	"github.com/openai/openai-go/v2/packages/param"
-	"github.com/openai/openai-go/v2/shared"
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/packages/param"
+	"github.com/openai/openai-go/v3/shared"
 )
 
 type Agent struct {
-	client           *openai.Client
-	deployment       string
-	isReasoningModel bool
-	getUserMessage   func() (string, bool)
-	tools            []ToolDefinition
+	client         *openai.Client
+	getUserMessage func() (string, bool)
+	tools          []ToolDefinition
 }
 
-func NewAgent(client *openai.Client, deployment string, isReasoningModel bool, getUserMessage func() (string, bool), tools []ToolDefinition) *Agent {
+func NewAgent(client *openai.Client, getUserMessage func() (string, bool), tools []ToolDefinition) *Agent {
 	return &Agent{
-		client:           client,
-		deployment:       deployment,
-		isReasoningModel: isReasoningModel,
-		getUserMessage:   getUserMessage,
-		tools:            tools,
+		client:         client,
+		getUserMessage: getUserMessage,
+		tools:          tools,
 	}
 }
 
@@ -93,19 +89,19 @@ func (a *Agent) runInference(ctx context.Context, conversation []openai.ChatComp
 		})
 	}
 
-	if a.isReasoningModel {
-		return a.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
-			Messages:            conversation,
-			MaxCompletionTokens: param.NewOpt(int64(4000)),
-			Model:               shared.ChatModel(a.deployment),
-			Tools:               tools,
-		})
-	}
+	// The completion parameters differ between reasoning models (including the GPT-5 mode family) and standard models like GPT-4o.
+	// If one was to adapt this code to use GTP-3.5, GPT-4, or GTP-4o, the following commented-out code must be used.
+	// return a.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+	// 	Messages:  conversation,
+	// 	MaxTokens: param.NewOpt(int64(1000)),
+	// 	Model:     openai.ChatModelGPT4oMini,
+	// 	Tools:     tools,
+	// })
 	return a.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
-		Messages:  conversation,
-		MaxTokens: param.NewOpt(int64(1000)),
-		Model:     shared.ChatModel(a.deployment),
-		Tools:     tools,
+		Messages:            conversation,
+		MaxCompletionTokens: param.NewOpt(int64(4000)),
+		Model:               openai.ChatModelGPT5Mini,
+		Tools:               tools,
 	})
 }
 
