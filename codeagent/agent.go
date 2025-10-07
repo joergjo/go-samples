@@ -5,23 +5,21 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/openai/openai-go/v2"
-	"github.com/openai/openai-go/v2/packages/param"
-	"github.com/openai/openai-go/v2/responses"
-	"github.com/openai/openai-go/v2/shared"
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/packages/param"
+	"github.com/openai/openai-go/v3/responses"
+	"github.com/openai/openai-go/v3/shared"
 )
 
 type Agent struct {
 	client         *openai.Client
-	deployment     string
 	getUserMessage func() (string, bool)
 	tools          []ToolDefinition
 }
 
-func NewAgent(client *openai.Client, deployment string, getUserMessage func() (string, bool), tools []ToolDefinition) *Agent {
+func NewAgent(client *openai.Client, getUserMessage func() (string, bool), tools []ToolDefinition) *Agent {
 	return &Agent{
 		client:         client,
-		deployment:     deployment,
 		getUserMessage: getUserMessage,
 		tools:          tools,
 	}
@@ -94,7 +92,7 @@ func (a *Agent) runInference(ctx context.Context, input responses.ResponseNewPar
 	message, err := a.client.Responses.New(ctx, responses.ResponseNewParams{
 		Input:              input,
 		MaxOutputTokens:    param.NewOpt(int64(1000)),
-		Model:              shared.ChatModel(a.deployment),
+		Model:              shared.ChatModel(openai.ChatModelGPT5Mini),
 		Tools:              tools,
 		PreviousResponseID: previousResponseID,
 	})
