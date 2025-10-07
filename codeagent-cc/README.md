@@ -1,8 +1,8 @@
 # codeagent-cc
 
-This is a OpenAI port of Thorsten Ball's awesome code agent sample he has blogged about [here](https://ampcode.com/how-to-build-an-agent). I've opted to split the original sample across multiple Go files, but other than that this port reflects the original version based on Athropic's as closely as possible.
+This is a OpenAI port of Thorsten Ball's awesome code agent sample he has blogged about [here](https://ampcode.com/how-to-build-an-agent) using the [OpenAI chat completion API](https://platform.openai.com/docs/api-reference/chat). I've opted to split the original sample across multiple Go files, but other than that this port reflects the original version based on Athropic's as closely as possible.
 
-The application works with both Azure OpenAI and OpenAI and uses gpt-5-mini.
+The application works with both Azure OpenAI and OpenAI and uses GPT-5-mini.
 
 >When using Azure OpenAI, make sure to specify your base URL as documented [here](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/api-version-lifecycle?tabs=go#v1-api-3). Note that this new endpoint does _not_ use the deployment name.  
 
