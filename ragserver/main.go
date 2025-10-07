@@ -17,8 +17,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/openai/openai-go/v2"
-	"github.com/openai/openai-go/v2/azure"
+	"github.com/openai/openai-go/v3"
 	"github.com/weaviate/weaviate-go-client/v5/weaviate"
 	"github.com/weaviate/weaviate-go-client/v5/weaviate/graphql"
 	"github.com/weaviate/weaviate/entities/models"
@@ -47,22 +46,10 @@ Context:
 %s
 `
 
-const apiVersion = "2024-10-21"
-
 // This is a standard Go HTTP server. Server state is in the ragServer struct.
 // The `main` function connects to the required services (Weaviate and OpenAI),
 // initializes the server state and registers HTTP handlers.
 func main() {
-	endpoint := os.Getenv("AZURE_OAI_ENDPOINT")
-	key := os.Getenv("AZURE_OAI_KEY")
-	ccDeployment := os.Getenv("AZURE_OAI_CC_DEPLOYMENT")
-	embDeployment := os.Getenv("AZURE_OAI_EMB_DEPLOYMENT")
-
-	if key == "" || ccDeployment == "" || embDeployment == "" || endpoint == "" {
-		slog.Error("missing environment variable")
-		os.Exit(1)
-	}
-
 	ctx := context.Background()
 	wvClient, err := initWeaviate(ctx)
 	if err != nil {
@@ -70,7 +57,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	oaiClient := openai.NewClient(azure.WithEndpoint(endpoint, apiVersion), azure.WithAPIKey(key))
+	oaiClient := openai.NewClient()
 
 	if err != nil {
 		slog.Error("creating client", "error", err)
@@ -78,11 +65,9 @@ func main() {
 	}
 
 	server := &ragServer{
-		ctx:           ctx,
-		wvClient:      wvClient,
-		oaiClient:     &oaiClient,
-		ccDeployment:  ccDeployment,
-		embDeployment: embDeployment,
+		ctx:       ctx,
+		wvClient:  wvClient,
+		oaiClient: &oaiClient,
 	}
 
 	mux := http.NewServeMux()
@@ -96,11 +81,9 @@ func main() {
 }
 
 type ragServer struct {
-	ctx           context.Context
-	wvClient      *weaviate.Client
-	oaiClient     *openai.Client
-	ccDeployment  string
-	embDeployment string
+	ctx       context.Context
+	wvClient  *weaviate.Client
+	oaiClient *openai.Client
 }
 
 func (rs *ragServer) addDocumentsHandler(w http.ResponseWriter, r *http.Request) {
@@ -128,7 +111,7 @@ func (rs *ragServer) addDocumentsHandler(w http.ResponseWriter, r *http.Request)
 	resp, err := rs.oaiClient.Embeddings.New(
 		rs.ctx,
 		openai.EmbeddingNewParams{
-			Model: openai.EmbeddingModel(rs.embDeployment), // Azure deployment name here
+			Model: openai.EmbeddingModelTextEmbedding3Small,
 			Input: openai.EmbeddingNewParamsInputUnion{
 				OfArrayOfStrings: input,
 			},
@@ -176,7 +159,7 @@ func (rs *ragServer) queryHandler(w http.ResponseWriter, r *http.Request) {
 	embResp, err := rs.oaiClient.Embeddings.New(
 		rs.ctx,
 		openai.EmbeddingNewParams{
-			Model: openai.EmbeddingModel(rs.embDeployment), // Azure deployment name here
+			Model: openai.EmbeddingModelTextEmbedding3Small, // Azure deployment name here
 			Input: openai.EmbeddingNewParamsInputUnion{
 				OfString: openai.String(qr.Content),
 			},
@@ -211,7 +194,7 @@ func (rs *ragServer) queryHandler(w http.ResponseWriter, r *http.Request) {
 	// context.
 	ragQuery := fmt.Sprintf(ragTemplateStr, qr.Content, strings.Join(contents, "\n"))
 	ccResp, err := rs.oaiClient.Chat.Completions.New(rs.ctx, openai.ChatCompletionNewParams{
-		Model: openai.ChatModel(rs.ccDeployment), // For Azure OpenAI, deployment name is used as the model.
+		Model: openai.ChatModelGPT4oMini,
 		Messages: []openai.ChatCompletionMessageParamUnion{
 			{
 				OfSystem: &openai.ChatCompletionSystemMessageParam{
