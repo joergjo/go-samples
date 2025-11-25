@@ -11,12 +11,11 @@ import (
 	"github.com/joergjo/go-samples/booklibrary/internal/model"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 )
 
 // CrudService stores Book instances in a MongoDB collection.
@@ -61,14 +60,18 @@ func NewCrudService(mongoURI, database, collection string) (*CrudService, error)
 	defer cancel()
 
 	// Set client options
-	opts := options.Client().ApplyURI(mongoURI).SetServerMonitor(newMonitor())
+	bsonOpts := &options.BSONOptions{
+		ObjectIDAsHexString: true,
+	}
+	opts := options.Client().ApplyURI(mongoURI).SetServerMonitor(newMonitor()).
+		SetConnectTimeout(startupTimeout).SetBSONOptions(bsonOpts)
 	if err := opts.Validate(); err != nil {
 		slog.Error("validating client options", log.ErrorKey, err, slog.Any("options", opts))
 		return nil, err
 	}
 
 	// Connect to MongoDB
-	client, err := mongo.Connect(ctx, opts)
+	client, err := mongo.Connect(opts)
 	if err != nil {
 		slog.Error("connecting to MongoDB", log.ErrorKey, err)
 		return nil, err
@@ -104,7 +107,7 @@ func (cs *CrudService) List(ctx context.Context, limit int) ([]model.Book, error
 func (cs *CrudService) Get(ctx context.Context, id string) (model.Book, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	oid, err := primitive.ObjectIDFromHex(id)
+	oid, err := bson.ObjectIDFromHex(id)
 	if err != nil {
 		slog.Error("parsing ObjectID", log.ErrorKey, err, slog.String("id", id))
 		return model.Book{}, model.ErrInvalidID
@@ -131,7 +134,7 @@ func (cs *CrudService) Add(ctx context.Context, book model.Book) (model.Book, er
 		slog.Error("inserting document", log.ErrorKey, err)
 		return model.Book{}, err
 	}
-	oid, ok := res.InsertedID.(primitive.ObjectID)
+	oid, ok := res.InsertedID.(bson.ObjectID)
 	if !ok {
 		panic("inserted ID is not an ObjectID")
 	}
@@ -141,7 +144,7 @@ func (cs *CrudService) Add(ctx context.Context, book model.Book) (model.Book, er
 
 // Update a book for specific ID in the collection.
 func (cs *CrudService) Update(ctx context.Context, id string, book model.Book) (model.Book, error) {
-	oid, err := primitive.ObjectIDFromHex(id)
+	oid, err := bson.ObjectIDFromHex(id)
 	if err != nil {
 		slog.Error("parsing ObjectID", log.ErrorKey, err, log.IdKey, id)
 		return model.Book{}, model.ErrInvalidID
@@ -177,7 +180,7 @@ func (cs *CrudService) Update(ctx context.Context, id string, book model.Book) (
 
 // Remove deletes a book from the collection.
 func (cs *CrudService) Remove(ctx context.Context, id string) (model.Book, error) {
-	oid, err := primitive.ObjectIDFromHex(id)
+	oid, err := bson.ObjectIDFromHex(id)
 	if err != nil {
 		slog.Error("parsing ObjectID", log.ErrorKey, err, log.IdKey, id)
 		return model.Book{}, model.ErrInvalidID
@@ -205,7 +208,7 @@ func (cs *CrudService) Remove(ctx context.Context, id string) (model.Book, error
 	return b, nil
 }
 
-func (cs *CrudService) find(ctx context.Context, filter primitive.M, limit int) ([]model.Book, error) {
+func (cs *CrudService) find(ctx context.Context, filter bson.M, limit int) ([]model.Book, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 

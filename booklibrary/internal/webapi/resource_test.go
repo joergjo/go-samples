@@ -14,7 +14,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/joergjo/go-samples/booklibrary/internal/model"
 	"github.com/joergjo/go-samples/booklibrary/internal/webapi"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 const applicationJSON = "application/json"
@@ -63,7 +63,7 @@ func (s *crudStub) Ping(ctx context.Context) error {
 func testData(count int) map[string]model.Book {
 	m := make(map[string]model.Book, count)
 	for i := 0; i < count; i++ {
-		id := primitive.NewObjectID().Hex()
+		id := bson.NewObjectID().Hex()
 		m[id] = model.Book{
 			ID:          id,
 			Author:      "John Doe",
@@ -229,7 +229,7 @@ func TestDeleteBook(t *testing.T) {
 func TestAddBook(t *testing.T) {
 	crud := crudStub{}
 	crud.AddFn = func(_ context.Context, book model.Book) (model.Book, error) {
-		book.ID = primitive.NewObjectID().Hex()
+		book.ID = bson.NewObjectID().Hex()
 		return book, nil
 	}
 
