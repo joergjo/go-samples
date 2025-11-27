@@ -1,0 +1,12 @@
+version: '3'
+
+tasks:
+  up:
+    desc: Run DocumentDB container for local development
+    cmds:
+      - docker compose -f compose.documentdb.yaml up -d
+    
+  down:
+    desc: Shuts down MongoDB container for local development
+    cmds:
+      - docker compose -f compose.documentdb.yaml down

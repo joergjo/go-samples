@@ -1,0 +1,26 @@
+volumes:
+  docdbdata:
+
+services:
+  booklibrary-docdb:
+    image: ghcr.io/documentdb/documentdb/documentdb-local:latest
+    ports:
+      # Port exposed as a convenience for local development
+      - "10260:10260"
+    volumes:
+      - docdbdata:/data
+    environment:
+      - USERNAME=api
+      - PASSWORD=secret
+
+  booklibrary-api:
+    profiles: 
+      - "all"
+    image: booklibrary-api:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: ${DOCKERFILE:-Dockerfile}
+    ports:
+      - "8000:8000"
+    environment:
+      - BOOKLIBRARY_MONGOURI=mongodb://api:secret@booklibrary-docdb:10260/?tls=true&tlsInsecure=true

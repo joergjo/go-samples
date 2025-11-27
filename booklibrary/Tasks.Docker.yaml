@@ -14,7 +14,7 @@ tasks:
   down:
     desc: Shuts down the application and MongoDB containers 
     cmds:
-      - docker compose --profile all  down
+      - docker compose --profile all down
   
   logs:
     desc: Streams all containers stdout/stderr (blocks, CTRL+C to exit)

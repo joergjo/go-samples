@@ -3,6 +3,7 @@ version: '3'
 includes:
   go: Tasks.Go.yaml
   mongo: Tasks.Mongo.yaml
+  docdb: Tasks.DocumentDB.yaml
   docker: Tasks.Docker.yaml
 
 vars:
