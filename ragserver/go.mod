@@ -3,7 +3,7 @@ module golang.org/x/example/ragserver/ragserver
 go 1.25.0
 
 require (
-	github.com/openai/openai-go/v3 v3.9.0
+	github.com/openai/openai-go/v3 v3.10.0
 	github.com/weaviate/weaviate v1.34.4
 	github.com/weaviate/weaviate-go-client/v5 v5.6.0
 )
@@ -12,7 +12,7 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/analysis v0.24.1 // indirect
-	github.com/go-openapi/errors v0.22.4 // indirect
+	github.com/go-openapi/errors v0.22.5 // indirect
 	github.com/go-openapi/jsonpointer v0.22.3 // indirect
 	github.com/go-openapi/jsonreference v0.21.3 // indirect
 	github.com/go-openapi/loads v0.23.2 // indirect
