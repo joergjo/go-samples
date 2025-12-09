@@ -21,11 +21,11 @@ func NewResource(crud model.CrudService) chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.AllowContentType("application/json"))
 	r.With(metricsFor("list_books)")).Get("/", rs.List)
-	r.With(metricsFor("create_books)")).Post("/", rs.Create)
+	r.With(metricsFor("create_book)")).Post("/", rs.Create)
 	r.Route("/{id}", func(r chi.Router) {
 		r.With(metricsFor("get_book)")).Get("/", rs.Get)
 		r.With(metricsFor("update_book)")).Put("/", rs.Update)
-		r.With(metricsFor("delete_books)")).Delete("/", rs.Delete)
+		r.With(metricsFor("delete_book)")).Delete("/", rs.Delete)
 	})
 	return r
 }
