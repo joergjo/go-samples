@@ -3,8 +3,8 @@ module golang.org/x/example/ragserver/ragserver
 go 1.25.0
 
 require (
-	github.com/openai/openai-go/v3 v3.10.0
-	github.com/weaviate/weaviate v1.34.4
+	github.com/openai/openai-go/v3 v3.12.0
+	github.com/weaviate/weaviate v1.34.5
 	github.com/weaviate/weaviate-go-client/v5 v5.6.0
 )
 
