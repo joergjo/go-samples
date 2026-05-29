@@ -3,8 +3,8 @@ module golang.org/x/example/ragserver/ragserver
 go 1.26
 
 require (
-	github.com/openai/openai-go/v3 v3.34.0
-	github.com/weaviate/weaviate v1.37.2
+	github.com/openai/openai-go/v3 v3.37.0
+	github.com/weaviate/weaviate v1.37.6
 	github.com/weaviate/weaviate-go-client/v5 v5.7.3
 )
 
@@ -41,7 +41,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/stretchr/objx v0.5.3 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
-	github.com/tidwall/gjson v1.18.0 // indirect
+	github.com/tidwall/gjson v1.19.0 // indirect
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
