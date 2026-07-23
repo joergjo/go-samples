@@ -6,7 +6,7 @@ require (
 	github.com/go-chi/chi/v5 v5.3.1
 	github.com/google/go-cmp v0.7.0
 	github.com/prometheus/client_golang v1.24.0
-	go.mongodb.org/mongo-driver/v2 v2.6.1
+	go.mongodb.org/mongo-driver/v2 v2.8.0
 )
 
 require (
