@@ -59,11 +59,6 @@ func main() {
 
 	oaiClient := openai.NewClient()
 
-	if err != nil {
-		slog.Error("creating client", "error", err)
-		os.Exit(1)
-	}
-
 	server := &ragServer{
 		ctx:       ctx,
 		wvClient:  wvClient,
