@@ -100,7 +100,7 @@ func (a *Agent) runInference(ctx context.Context, conversation []openai.ChatComp
 	return a.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Messages:            conversation,
 		MaxCompletionTokens: param.NewOpt(int64(4000)),
-		Model:               openai.ChatModelGPT5Mini,
+		Model:               openai.ChatModelGPT5_4,
 		Tools:               tools,
 	})
 }

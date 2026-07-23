@@ -92,7 +92,7 @@ func (a *Agent) runInference(ctx context.Context, input responses.ResponseNewPar
 	message, err := a.client.Responses.New(ctx, responses.ResponseNewParams{
 		Input:              input,
 		MaxOutputTokens:    param.NewOpt(int64(1000)),
-		Model:              shared.ChatModel(openai.ChatModelGPT5Mini),
+		Model:              shared.ChatModel(openai.ChatModelGPT5_4),
 		Tools:              tools,
 		PreviousResponseID: previousResponseID,
 	})

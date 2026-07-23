@@ -1,10 +1,10 @@
 module github.com/joergjo/go-samples/codeagent-cc
 
-go 1.24.3
+go 1.25.0
 
 require (
 	github.com/invopop/jsonschema v0.14.0
-	github.com/openai/openai-go/v3 v3.39.0
+	github.com/openai/openai-go/v3 v3.45.0
 )
 
 require (
