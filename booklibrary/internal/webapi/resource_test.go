@@ -62,7 +62,7 @@ func (s *crudStub) Ping(ctx context.Context) error {
 
 func testData(count int) map[string]model.Book {
 	m := make(map[string]model.Book, count)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		id := bson.NewObjectID().Hex()
 		m[id] = model.Book{
 			ID:          id,
