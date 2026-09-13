@@ -5,6 +5,13 @@ import (
 	"log/slog"
 )
 
+const (
+	ErrorKey    = "error"
+	IdKey       = "id"
+	MongoURIKey = "mongoURI"
+	AddrKey     = "addr"
+)
+
 // New creates a new logger with the given writer and debug mode. This logger logs in UTC.
 func New(w io.Writer, debug bool) *slog.Logger {
 	opts := slog.HandlerOptions{
