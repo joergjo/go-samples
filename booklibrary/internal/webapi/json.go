@@ -1,12 +1,8 @@
 package webapi
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"net/http"
-
-	"log/slog"
-
-	"github.com/joergjo/go-samples/booklibrary/internal/log"
 )
 
 type header struct {
@@ -14,25 +10,16 @@ type header struct {
 	val  string
 }
 
-func respond(w http.ResponseWriter, data any, status int, headers ...header) {
-	b, err := json.Marshal(data)
-	if err != nil {
-		slog.Error("encoding response", log.ErrorKey, err, slog.Any("data", data))
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-
+func respond(w http.ResponseWriter, v any, status int, headers ...header) {
 	for _, h := range headers {
 		w.Header().Add(h.name, h.val)
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	w.Write(b)
+	json.MarshalWrite(w, v)
 }
 
 func bind(r *http.Request, v any) error {
 	defer r.Body.Close()
-	dec := json.NewDecoder(r.Body)
-	dec.DisallowUnknownFields()
-	return dec.Decode(v)
+	return json.UnmarshalRead(r.Body, v)
 }
