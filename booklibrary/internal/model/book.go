@@ -1,7 +1,8 @@
 package model
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"time"
 )
 
@@ -14,20 +15,21 @@ type Book struct {
 	Keywords    []Keyword `json:"keywords" bson:"keywords"`
 }
 
-// MarshalJSON serializes a Book with its ReleaseDate rendered as Unix time.
-func (b Book) MarshalJSON() ([]byte, error) {
+// MarhsalJSONTo deserializes a Book with its ReleaseDate rendered as Unix time using streaming.
+func (b Book) MarshalJSONTo(enc *jsontext.Encoder) error {
 	type Dto Book
-	return json.Marshal(struct {
+	dto := struct {
 		ReleaseDate int64 `json:"releaseDate"`
 		Dto
 	}{
 		ReleaseDate: b.ReleaseDate.Unix(),
 		Dto:         (Dto)(b),
-	})
+	}
+	return json.MarshalEncode(enc, dto)
 }
 
-// UnmarshalJSON deserializes a Book with its ReleaseDate rendered as Unix time.
-func (b *Book) UnmarshalJSON(data []byte) error {
+// UnmarshalJSONFrom deserializes a Book with its ReleaseDate rendered as Unix time using streaming.
+func (b *Book) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	type Dto Book
 	dto := struct {
 		ReleaseDate int64 `json:"releaseDate"`
@@ -35,7 +37,7 @@ func (b *Book) UnmarshalJSON(data []byte) error {
 	}{
 		Dto: (*Dto)(b),
 	}
-	if err := json.Unmarshal(data, &dto); err != nil {
+	if err := json.UnmarshalDecode(dec, &dto); err != nil {
 		return err
 	}
 	b.ReleaseDate = time.Unix(dto.ReleaseDate, 0)

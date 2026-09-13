@@ -3,7 +3,7 @@ package webapi_test
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"io"
 	"net/http"
@@ -120,13 +120,8 @@ func TestListBooks(t *testing.T) {
 				t.Fatalf("Received unexpected HTTP content, got %q, want %q", got, applicationJSON)
 			}
 
-			body, err := io.ReadAll(res.Body)
-			if err != nil {
-				t.Fatalf("Error reading response body: %v", err)
-			}
-
 			var books []*model.Book
-			if err := json.Unmarshal(body, &books); err != nil {
+			if err := json.UnmarshalRead(res.Body, &books); err != nil {
 				t.Fatalf("Error unmarshaling JSON response: %v", err)
 			}
 
@@ -175,13 +170,8 @@ func TestGetBook(t *testing.T) {
 				return
 			}
 
-			body, err := io.ReadAll(res.Body)
-			if err != nil {
-				t.Fatalf("Error reading response body: %v", err)
-			}
-
 			var book model.Book
-			if err := json.Unmarshal(body, &book); err != nil {
+			if err := json.UnmarshalRead(res.Body, &book); err != nil {
 				t.Fatalf("Error unmarshaling JSON response: %v", err)
 			}
 
@@ -331,13 +321,8 @@ func TestUpdateBook(t *testing.T) {
 				t.Fatalf("Received unexpected HTTP content, got %q, want %q", got, applicationJSON)
 			}
 
-			body, err = io.ReadAll(res.Body)
-			if err != nil {
-				t.Fatalf("Error reading response body: %v", err)
-			}
-
 			got := &model.Book{}
-			if err := json.Unmarshal(body, got); err != nil {
+			if err := json.UnmarshalRead(res.Body, got); err != nil {
 				t.Fatalf("Error unmarshaling JSON response: %v", err)
 			}
 			// cmp.Diff() considers value and pointer types to be different,
