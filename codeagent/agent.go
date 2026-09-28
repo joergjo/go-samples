@@ -49,6 +49,7 @@ func (a *Agent) Run(ctx context.Context) error {
 		responseID = response.ID
 		input = responses.ResponseNewParamsInputUnion{}
 
+		// See https://developers.openai.com/api/docs/guides/function-calling?api-mode=responses&lang=go#function-tool-example
 		for _, output := range response.Output {
 			switch output.Type {
 			case "message":
@@ -59,7 +60,9 @@ func (a *Agent) Run(ctx context.Context) error {
 				if err != nil {
 					result = err.Error()
 				}
-				input.OfInputItemList = append(input.OfInputItemList, responses.ResponseInputItemParamOfFunctionCallOutput(functionCall.CallID, result))
+				funcCallOutput := responses.ResponseInputItemParamOfFunctionCallOutput(result)
+				funcCallOutput.OfFunctionCallOutput.CallID = param.NewOpt(functionCall.CallID)
+				input.OfInputItemList = append(input.OfInputItemList, funcCallOutput)
 			}
 		}
 
